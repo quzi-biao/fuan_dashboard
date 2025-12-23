@@ -8,8 +8,10 @@ import { useEffect, useState } from 'react';
 import { LatestDataPanel } from '@/components/LatestDataPanel';
 import { FlowAnalysisTable } from '@/components/FlowAnalysisTable';
 import { EfficiencyAnalysisTable } from '@/components/EfficiencyAnalysisTable';
+import { FlowAnalysisCharts } from '@/components/FlowAnalysisCharts';
+import { EfficiencyAnalysisCharts } from '@/components/EfficiencyAnalysisCharts';
 import { CustomDatePicker } from '@/components/CustomDatePicker';
-import { Download } from 'lucide-react';
+import { Download, BarChart3, Table } from 'lucide-react';
 
 export default function Home() {
   const [latestData, setLatestData] = useState<any>(null);
@@ -23,6 +25,10 @@ export default function Home() {
   const [flowEndDate, setFlowEndDate] = useState('');
   const [efficiencyStartDate, setEfficiencyStartDate] = useState('');
   const [efficiencyEndDate, setEfficiencyEndDate] = useState('');
+  
+  // 视图切换状态
+  const [flowViewMode, setFlowViewMode] = useState<'table' | 'chart'>('table');
+  const [efficiencyViewMode, setEfficiencyViewMode] = useState<'table' | 'chart'>('table');
 
   // 初始化日期（不包含今天）
   useEffect(() => {
@@ -228,13 +234,25 @@ export default function Home() {
           <div className="mb-4">
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-xl font-semibold text-gray-900">流量数据分时段分析</h2>
-              <button
-                onClick={exportFlowReport}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm"
-              >
-                <Download size={14} />
-                导出报表
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setFlowViewMode(flowViewMode === 'table' ? 'chart' : 'table')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm"
+                >
+                  {flowViewMode === 'table' ? (
+                    <><BarChart3 size={14} /> 图表</>
+                  ) : (
+                    <><Table size={14} /> 表格</>
+                  )}
+                </button>
+                <button
+                  onClick={exportFlowReport}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm"
+                >
+                  <Download size={14} />
+                  导出报表
+                </button>
+              </div>
             </div>
             <CustomDatePicker
               startDate={flowStartDate}
@@ -248,7 +266,11 @@ export default function Home() {
             />
           </div>
           <div className="max-h-[600px] overflow-y-auto">
-            <FlowAnalysisTable data={flowAnalysis} />
+            {flowViewMode === 'table' ? (
+              <FlowAnalysisTable data={flowAnalysis} />
+            ) : (
+              <FlowAnalysisCharts data={flowAnalysis} />
+            )}
           </div>
         </div>
 
@@ -257,13 +279,25 @@ export default function Home() {
           <div className="mb-4">
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-xl font-semibold text-gray-900">岩湖水厂能效分析</h2>
-              <button
-                onClick={exportEfficiencyReport}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm"
-              >
-                <Download size={14} />
-                导出报表
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setEfficiencyViewMode(efficiencyViewMode === 'table' ? 'chart' : 'table')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm"
+                >
+                  {efficiencyViewMode === 'table' ? (
+                    <><BarChart3 size={14} /> 图表</>
+                  ) : (
+                    <><Table size={14} /> 表格</>
+                  )}
+                </button>
+                <button
+                  onClick={exportEfficiencyReport}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm"
+                >
+                  <Download size={14} />
+                  导出报表
+                </button>
+              </div>
             </div>
             <CustomDatePicker
               startDate={efficiencyStartDate}
@@ -277,7 +311,11 @@ export default function Home() {
             />
           </div>
           <div className="max-h-[600px] overflow-y-auto">
-            <EfficiencyAnalysisTable data={efficiencyAnalysis} />
+            {efficiencyViewMode === 'table' ? (
+              <EfficiencyAnalysisTable data={efficiencyAnalysis} />
+            ) : (
+              <EfficiencyAnalysisCharts data={efficiencyAnalysis} />
+            )}
           </div>
         </div>
       </div>
