@@ -24,6 +24,9 @@ export function EfficiencyAnalysisTable({ data }: Props) {
     return <div className="text-gray-500 text-center py-8">暂无数据</div>;
   }
 
+  // 按日期降序排序（最新日期在上）
+  const sortedData = [...data].sort((a, b) => b.date.localeCompare(a.date));
+
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
@@ -53,8 +56,11 @@ export function EfficiencyAnalysisTable({ data }: Props) {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {data.map((item) => (
-            <tr key={item.date} className="hover:bg-gray-50">
+          {sortedData.map((item, index) => (
+            <tr 
+              key={item.date} 
+              className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-100'} hover:bg-blue-50 transition-colors`}
+            >
               <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                 {item.date}
               </td>

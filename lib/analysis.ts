@@ -49,7 +49,7 @@ export interface FlowDataRecord {
 // 流量分时段分析结果
 export interface FlowAnalysisResult {
   date: string;
-  period: ElectricityPeriod;
+  period: ElectricityPeriod | 'total';
   period_name: string;
   chengdong_avg_flow: number;
   yanhu_avg_flow: number;
@@ -57,6 +57,7 @@ export interface FlowAnalysisResult {
   yanhu_cumulative_flow: number;
   yanhu_electricity: number;
   total_cumulative_flow: number;
+  is_total?: boolean; // 标记是否为总计行
 }
 
 // 能效分析结果
@@ -78,10 +79,15 @@ export interface EfficiencyAnalysisResult {
 export function analyzeFlowByElectricityPeriod(data: FlowDataRecord[]): FlowAnalysisResult[] {
   const results: FlowAnalysisResult[] = [];
   
-  // 按日期分组
+  // 按日期分组 - 使用本地日期，与Python的 dt.date 保持一致
   const dataByDate = new Map<string, FlowDataRecord[]>();
   data.forEach(record => {
-    const date = record.collect_time.toISOString().split('T')[0];
+    // 使用本地日期，与Python的 dt.date 保持一致
+    const year = record.collect_time.getFullYear();
+    const month = String(record.collect_time.getMonth() + 1).padStart(2, '0');
+    const day = String(record.collect_time.getDate()).padStart(2, '0');
+    const date = `${year}-${month}-${day}`;
+    
     if (!dataByDate.has(date)) {
       dataByDate.set(date, []);
     }
@@ -105,6 +111,11 @@ export function analyzeFlowByElectricityPeriod(data: FlowDataRecord[]): FlowAnal
     });
     
     // 计算每个时段的统计数据
+    const periodResults: FlowAnalysisResult[] = [];
+    let totalChengdong = 0;
+    let totalYanhu = 0;
+    let totalElectricity = 0;
+    
     (['valley', 'flat', 'peak'] as ElectricityPeriod[]).forEach(period => {
       const records = periodData.get(period) || [];
       if (records.length > 0) {
@@ -127,7 +138,12 @@ export function analyzeFlowByElectricityPeriod(data: FlowDataRecord[]): FlowAnal
           ? Math.max(...powerValues) - Math.min(...powerValues)
           : 0;
         
-        results.push({
+        // 累加到总计
+        totalChengdong += chengdongCumulative;
+        totalYanhu += yanhuCumulative;
+        totalElectricity += yanhuElectricity;
+        
+        periodResults.push({
           date,
           period,
           period_name: config.name,
@@ -140,6 +156,25 @@ export function analyzeFlowByElectricityPeriod(data: FlowDataRecord[]): FlowAnal
         });
       }
     });
+    
+    // 添加时段结果
+    results.push(...periodResults);
+    
+    // 添加总计行
+    if (periodResults.length > 0) {
+      results.push({
+        date,
+        period: 'total',
+        period_name: '总计',
+        chengdong_avg_flow: 0, // 总计行不显示平均值
+        yanhu_avg_flow: 0,
+        chengdong_cumulative_flow: totalChengdong,
+        yanhu_cumulative_flow: totalYanhu,
+        yanhu_electricity: totalElectricity,
+        total_cumulative_flow: totalChengdong + totalYanhu,
+        is_total: true
+      });
+    }
   });
   
   return results;

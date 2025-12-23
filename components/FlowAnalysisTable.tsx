@@ -15,6 +15,7 @@ interface FlowAnalysisData {
   yanhu_cumulative_flow: number;
   yanhu_electricity: number;
   total_cumulative_flow: number;
+  is_total?: boolean;
 }
 
 interface Props {
@@ -34,6 +35,9 @@ export function FlowAnalysisTable({ data }: Props) {
     acc[item.date].push(item);
     return acc;
   }, {} as Record<string, FlowAnalysisData[]>);
+
+  // 按日期降序排序（最新日期在上）
+  const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
 
   return (
     <div className="overflow-x-auto">
@@ -61,43 +65,57 @@ export function FlowAnalysisTable({ data }: Props) {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {Object.entries(groupedByDate).map(([date, items]) => (
+          {sortedDates.map((date, dateIndex) => {
+            const items = groupedByDate[date];
+            return (
             <React.Fragment key={date}>
               {items.map((item, idx) => (
-                <tr key={`${date}-${item.period}`} className="hover:bg-gray-50">
+                <tr 
+                  key={`${date}-${item.period}`} 
+                  className={`${dateIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'} hover:bg-blue-50 transition-colors`}
+                >
                   {idx === 0 && (
                     <td
                       rowSpan={items.length}
-                      className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r"
+                      className={`px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r ${
+                        dateIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                      }`}
                     >
                       {date}
                     </td>
                   )}
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      item.period === 'valley' ? 'bg-blue-100 text-blue-800' :
-                      item.period === 'flat' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {item.period_name}电价
-                    </span>
+                  <td className={`px-4 py-3 whitespace-nowrap text-sm text-gray-900 ${item.is_total ? 'font-bold' : ''}`}>
+                    {item.is_total ? (
+                      <span className="px-2 py-1 rounded text-xs font-bold bg-gray-200 text-gray-800">
+                        {item.period_name}
+                      </span>
+                    ) : (
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        item.period === 'valley' ? 'bg-blue-100 text-blue-800' :
+                        item.period === 'flat' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {item.period_name}电价
+                      </span>
+                    )}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900">
+                  <td className={`px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 ${item.is_total ? 'font-bold' : ''}`}>
                     {item.chengdong_cumulative_flow.toFixed(1)}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900">
+                  <td className={`px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 ${item.is_total ? 'font-bold' : ''}`}>
                     {item.yanhu_cumulative_flow.toFixed(1)}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900">
+                  <td className={`px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 ${item.is_total ? 'font-bold' : ''}`}>
                     {item.yanhu_electricity.toFixed(1)}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-medium text-gray-900">
+                  <td className={`px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 ${item.is_total ? 'font-bold' : 'font-medium'}`}>
                     {item.total_cumulative_flow.toFixed(1)}
                   </td>
                 </tr>
               ))}
             </React.Fragment>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
