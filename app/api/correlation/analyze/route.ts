@@ -335,7 +335,49 @@ export async function GET(request: NextRequest) {
         residual: yTest[idx] - pred
       }));
 
-      result.equation = `多项式回归 (阶数=${degree})`;
+      // 生成多项式表达式
+      // 系数顺序: [截距, x1^1, x1^2, ..., x1^degree, x2^1, x2^2, ..., x2^degree, ...]
+      const coeffs = trainResult.coefficients;
+      let equationParts: string[] = [];
+      
+      // 截距项
+      if (Math.abs(coeffs[0]) > 0.0001) {
+        equationParts.push(coeffs[0].toFixed(4));
+      }
+      
+      // 变量项
+      let coeffIndex = 1;
+      for (let varIdx = 0; varIdx < xFields.length; varIdx++) {
+        const varName = `x${varIdx + 1}`;
+        for (let d = 1; d <= degree; d++) {
+          const coeff = coeffs[coeffIndex];
+          if (Math.abs(coeff) > 0.0001) {
+            const coeffStr = Math.abs(coeff).toFixed(4);
+            const sign = coeff > 0 ? '+' : '-';
+            const term = d === 1 ? varName : `${varName}^${d}`;
+            equationParts.push(`${sign} ${coeffStr}·${term}`);
+          }
+          coeffIndex++;
+        }
+      }
+      
+      result.equation = equationParts.length > 0 
+        ? `y = ${equationParts.join(' ')}`
+        : 'y = 0';
+      
+      // 如果是单变量，生成时间序列数据用于绘制曲线
+      if (xFields.length === 1) {
+        result.is_single_variable = true;
+        // 使用全部数据生成时间序列
+        const fullResult = polynomialRegression(X, y, degree);
+        result.time_series_data = X.map((xVal, idx) => ({
+          x: xVal[0],
+          y_actual: y[idx],
+          y_predicted: fullResult.predictions[idx]
+        }));
+        // 按 x 值排序以便绘制曲线
+        result.time_series_data.sort((a: any, b: any) => a.x - b.x);
+      }
 
     } else {
       // 线性回归（作为神经网络的简化实现）
@@ -384,10 +426,40 @@ export async function GET(request: NextRequest) {
       }));
 
       // 生成回归方程
-      const equationParts = xFields.map((field, idx) => 
-        `${trainResult.coefficients[idx].toFixed(4)} × ${field}`
-      );
-      result.equation = `${yField} = ${equationParts.join(' + ')} + ${trainResult.intercept.toFixed(4)}`;
+      let equationParts: string[] = [];
+      
+      // 截距项
+      if (Math.abs(trainResult.intercept) > 0.0001) {
+        equationParts.push(trainResult.intercept.toFixed(4));
+      }
+      
+      // 变量项
+      xFields.forEach((field, idx) => {
+        const coeff = trainResult.coefficients[idx];
+        if (Math.abs(coeff) > 0.0001) {
+          const coeffStr = Math.abs(coeff).toFixed(4);
+          const sign = coeff > 0 ? '+' : '-';
+          equationParts.push(`${sign} ${coeffStr}·x${idx + 1}`);
+        }
+      });
+      
+      result.equation = equationParts.length > 0 
+        ? `y = ${equationParts.join(' ')}`
+        : 'y = 0';
+      
+      // 如果是单变量，生成时间序列数据
+      if (xFields.length === 1) {
+        result.is_single_variable = true;
+        const fullPredictions = X.map(row => 
+          trainResult.intercept + row[0] * trainResult.coefficients[0]
+        );
+        result.time_series_data = X.map((xVal, idx) => ({
+          x: xVal[0],
+          y_actual: y[idx],
+          y_predicted: fullPredictions[idx]
+        }));
+        result.time_series_data.sort((a: any, b: any) => a.x - b.x);
+      }
     }
 
     return NextResponse.json(result);

@@ -1,32 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Play, Download } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { CustomDatePicker } from '@/components/CustomDatePicker';
-import { CustomSelect } from '@/components/CustomSelect';
-import {
-  LineChart,
-  Line,
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  ReferenceLine
-} from 'recharts';
+import { AnalysisConfig } from '@/components/correlation/AnalysisConfig';
+import { RegressionResults } from '@/components/correlation/RegressionResults';
+import { DIDResults } from '@/components/correlation/DIDResults';
 
 interface AnalysisResult {
   type: string;
-  r2_train: number;
-  r2_test: number;
-  mse_train: number;
-  mse_test: number;
+  r2_train?: number;
+  r2_test?: number;
+  mse_train?: number;
+  mse_test?: number;
   coefficients?: Record<string, number>;
   intercept?: number;
   feature_importance?: Record<string, number>;
@@ -34,11 +20,22 @@ interface AnalysisResult {
   residuals_data?: Array<{ predicted: number; residual: number }>;
   correlation_matrix?: Record<string, Record<string, number>>;
   equation?: string;
+  time_series_data?: Array<{ x: number; y_actual: number; y_predicted: number; time?: string }>;
+  is_single_variable?: boolean;
+  // DID 分析结果
+  did_effect?: number;
+  did_p_value?: number;
+  pre_treatment_mean?: number;
+  post_treatment_mean?: number;
+  pre_control_mean?: number;
+  post_control_mean?: number;
+  treatment_trend?: Array<{ date: string; value: number; group: string; period: string }>;
+  parallel_trend_test?: { p_value: number; passed: boolean };
 }
 
 // 字段标签映射
 const FIELD_LABELS: Record<string, string> = {
-  // 末端压力计（根据 PressurePanel 组件中的配置）
+  // 末端压力计
   'press_4137': '末端压力 - 一中新校区',
   'press_9300': '末端压力 - 农垦人花苑',
   'press_2366': '末端压力 - 涧里小区',
@@ -47,9 +44,9 @@ const FIELD_LABELS: Record<string, string> = {
   'press_3873': '末端压力 - 阳头小学外墙',
   'press_1665': '末端压力 - 老干新村',
   
-  // 水厂指标（根据分析脚本推断）
-  'i_1034': '岩湖-出水流量',  // flow_out
-  'i_1030': '岩湖-出水压力',  // pressure_out
+  // 水厂指标
+  'i_1034': '岩湖-出水流量',
+  'i_1030': '岩湖-出水压力',
   'i_1029': '岩湖-水位',
   'i_1031': '岩湖-目标压力',
   'i_1032': '岩湖-出水流量1',
@@ -88,9 +85,10 @@ function getFieldLabel(field: string): string {
 export default function CorrelationAnalysisPage() {
   const [xFields, setXFields] = useState<string[]>(['flow_out']);
   const [yField, setYField] = useState('pressure_out');
-  const [analysisType, setAnalysisType] = useState<'polynomial' | 'neural_network'>('polynomial');
+  const [analysisType, setAnalysisType] = useState<'polynomial' | 'neural_network' | 'did'>('polynomial');
   const [polynomialDegree, setPolynomialDegree] = useState(2);
   const [hiddenLayers, setHiddenLayers] = useState('100,50');
+  const [interventionDate, setInterventionDate] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
@@ -127,26 +125,6 @@ export default function CorrelationAnalysisPage() {
     fetchFields();
   }, []);
 
-  // 添加自变量
-  const addXField = () => {
-    setXFields([...xFields, '']);
-  };
-
-  // 删除自变量
-  const removeXField = (index: number) => {
-    if (xFields.length > 1) {
-      const newFields = xFields.filter((_, i) => i !== index);
-      setXFields(newFields);
-    }
-  };
-
-  // 更新自变量
-  const updateXField = (index: number, value: string) => {
-    const newFields = [...xFields];
-    newFields[index] = value;
-    setXFields(newFields);
-  };
-
   // 执行分析
   const runAnalysis = async () => {
     if (!startDate || !endDate) {
@@ -179,8 +157,15 @@ export default function CorrelationAnalysisPage() {
 
       if (analysisType === 'polynomial') {
         params.append('degree', polynomialDegree.toString());
-      } else {
+      } else if (analysisType === 'neural_network') {
         params.append('hidden_layers', hiddenLayers);
+      } else if (analysisType === 'did') {
+        if (!interventionDate) {
+          setError('请选择干预日期');
+          setLoading(false);
+          return;
+        }
+        params.append('intervention_date', interventionDate);
       }
 
       const response = await fetch(`/api/correlation/analyze?${params}`);
@@ -216,339 +201,59 @@ export default function CorrelationAnalysisPage() {
         </div>
       </div>
 
+      {/* 错误提示 */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          {error}
+        </div>
+      )}
+
       {/* 主内容区域：左右布局 */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         {/* 配置面板 - 左侧，较窄 */}
         <div className="xl:col-span-3">
-          <div className="bg-white rounded-lg shadow p-6 sticky top-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900">分析配置</h2>
-        
-        {/* 自变量选择 */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            自变量（Independent Variables）
-          </label>
-          {xFields.map((field, index) => (
-            <div key={index} className="flex gap-2 mb-2">
-              <CustomSelect
-                value={field}
-                onChange={(value) => updateXField(index, value)}
-                options={availableFields.map(f => ({ value: f, label: getFieldLabel(f) }))}
-                placeholder="选择字段"
-                className="flex-1"
-              />
-              {xFields.length > 1 && (
-                <button
-                  onClick={() => removeXField(index)}
-                  className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex-shrink-0"
-                >
-                  删除
-                </button>
-              )}
-            </div>
-          ))}
-          <button
-            onClick={addXField}
-            className="mt-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-          >
-            + 添加自变量
-          </button>
-        </div>
-
-        {/* 因变量选择 */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            因变量（Dependent Variable）
-          </label>
-          <CustomSelect
-            value={yField}
-            onChange={setYField}
-            options={availableFields.map(f => ({ value: f, label: getFieldLabel(f) }))}
-            placeholder="选择字段"
-          />
-        </div>
-
-        {/* 分析类型 */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            分析类型
-          </label>
-          <div className="flex gap-4">
-            <label className="flex items-center text-gray-900">
-              <input
-                type="radio"
-                value="polynomial"
-                checked={analysisType === 'polynomial'}
-                onChange={(e) => setAnalysisType(e.target.value as 'polynomial')}
-                className="mr-2"
-              />
-              多项式回归
-            </label>
-            <label className="flex items-center text-gray-900">
-              <input
-                type="radio"
-                value="neural_network"
-                checked={analysisType === 'neural_network'}
-                onChange={(e) => setAnalysisType(e.target.value as 'neural_network')}
-                className="mr-2"
-              />
-              神经网络回归
-            </label>
-          </div>
-        </div>
-
-        {/* 多项式阶数 */}
-        {analysisType === 'polynomial' && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-900 mb-2">
-              多项式阶数
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="5"
-              value={polynomialDegree}
-              onChange={(e) => setPolynomialDegree(parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-            />
-          </div>
-        )}
-
-        {/* 神经网络隐藏层 */}
-        {analysisType === 'neural_network' && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-900 mb-2">
-              隐藏层结构（用逗号分隔，如：100,50）
-            </label>
-            <input
-              type="text"
-              value={hiddenLayers}
-              onChange={(e) => setHiddenLayers(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-500"
-              placeholder="100,50"
-            />
-          </div>
-        )}
-
-        {/* 日期范围 */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            分析日期范围
-          </label>
-          <CustomDatePicker
+          <AnalysisConfig
+            xFields={xFields}
+            yField={yField}
+            analysisType={analysisType}
+            polynomialDegree={polynomialDegree}
+            hiddenLayers={hiddenLayers}
+            interventionDate={interventionDate}
             startDate={startDate}
             endDate={endDate}
+            availableFields={availableFields}
+            loading={loading}
+            onXFieldsChange={setXFields}
+            onYFieldChange={setYField}
+            onAnalysisTypeChange={setAnalysisType}
+            onPolynomialDegreeChange={setPolynomialDegree}
+            onHiddenLayersChange={setHiddenLayers}
+            onInterventionDateChange={setInterventionDate}
             onStartDateChange={setStartDate}
             onEndDateChange={setEndDate}
-            onQuery={() => {}}
-            maxDays={90}
-            color="blue"
-            cacheKey="correlationDateRange"
-            hideButtons={true}
+            onRunAnalysis={runAnalysis}
+            getFieldLabel={getFieldLabel}
           />
-        </div>
-
-        {/* 执行按钮 */}
-        <button
-          onClick={runAnalysis}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
-        >
-          {loading ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              <span>分析中...</span>
-            </>
-          ) : (
-            <>
-              <Play size={20} />
-              <span>开始分析</span>
-            </>
-          )}
-        </button>
-
-            {error && (
-              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 font-medium">
-                {error}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* 结果展示 - 右侧，较宽 */}
         {result && (
           <div className="xl:col-span-9">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">分析结果</h2>
-              </div>
-
-              {/* 统计指标 */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <div className="text-sm text-gray-700 font-medium">训练集 R²</div>
-                  <div className="text-2xl font-bold text-blue-700">
-                    {result.r2_train.toFixed(4)}
-                  </div>
-                </div>
-                <div className="p-4 bg-green-50 rounded-lg">
-                  <div className="text-sm text-gray-700 font-medium">测试集 R²</div>
-                  <div className="text-2xl font-bold text-green-700">
-                    {result.r2_test.toFixed(4)}
-                  </div>
-                </div>
-                <div className="p-4 bg-orange-50 rounded-lg">
-                  <div className="text-sm text-gray-700 font-medium">训练集 MSE</div>
-                  <div className="text-2xl font-bold text-orange-700">
-                    {result.mse_train.toFixed(4)}
-                  </div>
-                </div>
-                <div className="p-4 bg-purple-50 rounded-lg">
-                  <div className="text-sm text-gray-700 font-medium">测试集 MSE</div>
-                  <div className="text-2xl font-bold text-purple-700">
-                    {result.mse_test.toFixed(4)}
-                  </div>
-                </div>
-              </div>
-
-              {/* 回归方程 */}
-              {result.equation && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  <div className="text-sm font-medium text-gray-900 mb-2">回归方程</div>
-                  <div className="font-mono text-sm text-gray-900">{result.equation}</div>
-                </div>
-              )}
-
-              {/* 图表展示 */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 预测值 vs 实际值 */}
-            {result.scatter_data && result.scatter_data.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-gray-900">预测值 vs 实际值</h3>
-                <ResponsiveContainer width="100%" height={500}>
-                  <ScatterChart margin={{ top: 20, right: 30, bottom: 50, left: 60 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis 
-                      type="number" 
-                      dataKey="actual" 
-                      name="实际值"
-                      label={{ value: '实际值', position: 'insideBottom', offset: -15, fill: '#374151', fontSize: 14 }}
-                      tick={{ fill: '#6b7280' }}
-                      stroke="#9ca3af"
-                    />
-                    <YAxis 
-                      type="number" 
-                      dataKey="predicted" 
-                      name="预测值"
-                      label={{ value: '预测值', angle: -90, position: 'insideLeft', offset: -10, fill: '#374151', fontSize: 14 }}
-                      tick={{ fill: '#6b7280' }}
-                      stroke="#9ca3af"
-                    />
-                    <Tooltip 
-                      cursor={{ strokeDasharray: '3 3' }}
-                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px' }}
-                      labelStyle={{ color: '#374151' }}
-                    />
-                    <Legend wrapperStyle={{ color: '#374151', paddingTop: '30px' }} />
-                    <Scatter name="数据点" data={result.scatter_data} fill="#3b82f6" />
-                  </ScatterChart>
-                </ResponsiveContainer>
-              </div>
+            {result.type === 'did' ? (
+              <DIDResults
+                result={result}
+                yField={yField}
+                interventionDate={interventionDate}
+                getFieldLabel={getFieldLabel}
+              />
+            ) : (
+              <RegressionResults
+                result={result}
+                xFields={xFields}
+                yField={yField}
+                getFieldLabel={getFieldLabel}
+              />
             )}
-
-            {/* 残差分析 */}
-            {result.residuals_data && result.residuals_data.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-gray-900">残差分析</h3>
-                <ResponsiveContainer width="100%" height={500}>
-                  <ScatterChart margin={{ top: 20, right: 30, bottom: 50, left: 60 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis 
-                      type="number" 
-                      dataKey="predicted" 
-                      name="预测值"
-                      label={{ value: '预测值', position: 'insideBottom', offset: -15, fill: '#374151', fontSize: 14 }}
-                      tick={{ fill: '#6b7280' }}
-                      stroke="#9ca3af"
-                    />
-                    <YAxis 
-                      type="number" 
-                      dataKey="residual" 
-                      name="残差"
-                      label={{ value: '残差', angle: -90, position: 'insideLeft', offset: -10, fill: '#374151', fontSize: 14 }}
-                      tick={{ fill: '#6b7280' }}
-                      stroke="#9ca3af"
-                    />
-                    <Tooltip 
-                      cursor={{ strokeDasharray: '3 3' }}
-                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px' }}
-                      labelStyle={{ color: '#374151' }}
-                    />
-                    <Legend wrapperStyle={{ color: '#374151', paddingTop: '30px' }} />
-                    <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" />
-                    <Scatter name="残差" data={result.residuals_data} fill="#10b981" />
-                  </ScatterChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* 特征重要性 */}
-            {result.feature_importance && (
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-gray-900">特征重要性</h3>
-                <ResponsiveContainer width="100%" height={500}>
-                  <BarChart
-                    data={Object.entries(result.feature_importance).map(([name, value]) => ({
-                      name,
-                      importance: value
-                    }))}
-                    margin={{ top: 20, right: 30, bottom: 50, left: 60 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis 
-                      dataKey="name" 
-                      tick={{ fill: '#6b7280' }}
-                      stroke="#9ca3af"
-                      label={{ value: '变量', position: 'insideBottom', offset: -15, fill: '#374151', fontSize: 14 }}
-                    />
-                    <YAxis 
-                      tick={{ fill: '#6b7280' }}
-                      stroke="#9ca3af"
-                      label={{ value: '重要性', angle: -90, position: 'insideLeft', offset: -10, fill: '#374151', fontSize: 14 }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px' }}
-                      labelStyle={{ color: '#374151' }}
-                    />
-                    <Legend wrapperStyle={{ color: '#374151', paddingTop: '30px' }} />
-                    <Bar dataKey="importance" fill="#8b5cf6" name="重要性" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* 系数展示 */}
-            {result.coefficients && (
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-gray-900">回归系数</h3>
-                <div className="space-y-2">
-                  {Object.entries(result.coefficients).map(([field, coef]) => (
-                    <div key={field} className="flex justify-between p-2 bg-gray-50 rounded">
-                      <span className="font-medium text-gray-900">{field}</span>
-                      <span className="font-mono text-gray-700">{coef.toFixed(6)}</span>
-                    </div>
-                  ))}
-                  {result.intercept !== undefined && (
-                    <div className="flex justify-between p-2 bg-blue-50 rounded">
-                      <span className="font-medium text-gray-900">截距</span>
-                      <span className="font-mono text-gray-700">{result.intercept.toFixed(6)}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-              </div>
-            </div>
           </div>
         )}
       </div>
