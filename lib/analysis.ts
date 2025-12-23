@@ -119,8 +119,9 @@ export function analyzeFlowByElectricityPeriod(data: FlowDataRecord[]): FlowAnal
         const yanhuCumulative = yanhuAvg * config.duration_hours;
         
         // 计算电量（最大值 - 最小值）
+        // 注意：Python脚本使用 i_1072 (yanhu_daily_water) 来计算电量差值
         const powerValues = records
-          .map(r => r.yanhu_daily_power)
+          .map(r => r.yanhu_daily_water)
           .filter((v): v is number => v !== undefined && v !== null);
         const yanhuElectricity = powerValues.length > 0 
           ? Math.max(...powerValues) - Math.min(...powerValues)
@@ -150,10 +151,15 @@ export function analyzeFlowByElectricityPeriod(data: FlowDataRecord[]): FlowAnal
 export function analyzeEfficiency(data: FlowDataRecord[]): EfficiencyAnalysisResult[] {
   const results: EfficiencyAnalysisResult[] = [];
   
-  // 按日期分组
+  // 按日期分组 - 使用本地日期，不使用ISO字符串
   const dataByDate = new Map<string, FlowDataRecord[]>();
   data.forEach(record => {
-    const date = record.collect_time.toISOString().split('T')[0];
+    // 使用本地日期，与Python的 dt.date 保持一致
+    const year = record.collect_time.getFullYear();
+    const month = String(record.collect_time.getMonth() + 1).padStart(2, '0');
+    const day = String(record.collect_time.getDate()).padStart(2, '0');
+    const date = `${year}-${month}-${day}`;
+    
     if (!dataByDate.has(date)) {
       dataByDate.set(date, []);
     }
@@ -162,6 +168,24 @@ export function analyzeEfficiency(data: FlowDataRecord[]): EfficiencyAnalysisRes
   
   // 计算每日能效指标
   const dates = Array.from(dataByDate.keys()).sort();
+  
+  // 先计算所有日期的 i_1072 和 i_1073 最大值
+  const dailyMaxValues = new Map<string, { water: number; power: number }>();
+  dates.forEach(date => {
+    const dayData = dataByDate.get(date)!;
+    
+    const waterValues = dayData
+      .map(r => r.yanhu_daily_water)
+      .filter((v): v is number => v !== undefined && v !== null);
+    const powerValues = dayData
+      .map(r => r.yanhu_daily_power)
+      .filter((v): v is number => v !== undefined && v !== null);
+    
+    dailyMaxValues.set(date, {
+      water: waterValues.length > 0 ? Math.max(...waterValues) : 0,
+      power: powerValues.length > 0 ? Math.max(...powerValues) : 0
+    });
+  });
   
   dates.forEach((date, index) => {
     const dayData = dataByDate.get(date)!;
@@ -189,24 +213,22 @@ export function analyzeEfficiency(data: FlowDataRecord[]): EfficiencyAnalysisRes
     const pressureWeightedAvg = weightedSum / flowSum;
     
     // 获取日供水量和日耗电量（使用下一天的数据，因为有偏移）
+    // Python: daily_stats['i_1072_adjusted'] = daily_stats['i_1072_max'].shift(-1)
     let dailyWater = 0;
     let dailyPower = 0;
     
     if (index < dates.length - 1) {
-      const nextDayData = dataByDate.get(dates[index + 1])!;
-      const waterValues = nextDayData
-        .map(r => r.yanhu_daily_water)
-        .filter((v): v is number => v !== undefined && v !== null);
-      const powerValues = nextDayData
-        .map(r => r.yanhu_daily_power)
-        .filter((v): v is number => v !== undefined && v !== null);
-      
-      if (waterValues.length > 0) dailyWater = Math.max(...waterValues);
-      if (powerValues.length > 0) dailyPower = Math.max(...powerValues);
+      const nextDate = dates[index + 1];
+      const nextDayMax = dailyMaxValues.get(nextDate);
+      if (nextDayMax) {
+        dailyWater = nextDayMax.water;
+        dailyPower = nextDayMax.power;
+      }
     }
     
     // 计算能效指标
-    const powerPer1000t = dailyWater > 0 ? (dailyPower / dailyWater * 1000) : 0;
+    // Python公式: i_1072_adjusted / i_1073_adjusted * 1000 (水量/电量)
+    const powerPer1000t = dailyPower > 0 ? (dailyWater / dailyPower * 1000) : 0;
     const powerPerPressure = pressureWeightedAvg > 0 ? (powerPer1000t / pressureWeightedAvg) : 0;
     
     results.push({
