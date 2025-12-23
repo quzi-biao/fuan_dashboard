@@ -34,12 +34,17 @@ check_docker() {
         exit 1
     fi
     
-    if ! command -v docker-compose &> /dev/null; then
+    # 检查 docker-compose 或 docker compose
+    if command -v docker-compose &> /dev/null; then
+        DOCKER_COMPOSE="docker-compose"
+    elif docker compose version &> /dev/null; then
+        DOCKER_COMPOSE="docker compose"
+    else
         print_error "Docker Compose 未安装，请先安装 Docker Compose"
         exit 1
     fi
     
-    print_message "Docker 环境检查通过"
+    print_message "Docker 环境检查通过 (使用 $DOCKER_COMPOSE)"
 }
 
 # 检查环境变量文件
@@ -62,14 +67,14 @@ check_env() {
 # 构建镜像
 build_image() {
     print_message "开始构建 Docker 镜像..."
-    docker-compose build --no-cache
+    $DOCKER_COMPOSE build --no-cache
     print_message "镜像构建完成"
 }
 
 # 启动服务
 start_service() {
     print_message "启动 ${PROJECT_NAME} 服务..."
-    docker-compose up -d
+    $DOCKER_COMPOSE up -d
     print_message "服务启动成功"
     print_message "访问地址: http://localhost:5656"
 }
@@ -77,27 +82,27 @@ start_service() {
 # 停止服务
 stop_service() {
     print_message "停止 ${PROJECT_NAME} 服务..."
-    docker-compose down
+    $DOCKER_COMPOSE down
     print_message "服务已停止"
 }
 
 # 重启服务
 restart_service() {
     print_message "重启 ${PROJECT_NAME} 服务..."
-    docker-compose restart
+    $DOCKER_COMPOSE restart
     print_message "服务重启完成"
 }
 
 # 查看日志
 view_logs() {
     print_message "查看服务日志 (Ctrl+C 退出)..."
-    docker-compose logs -f
+    $DOCKER_COMPOSE logs -f
 }
 
 # 查看状态
 check_status() {
     print_message "服务状态:"
-    docker-compose ps
+    $DOCKER_COMPOSE ps
 }
 
 # 清理资源
@@ -105,7 +110,7 @@ cleanup() {
     print_warning "清理所有容器、镜像和数据..."
     read -p "确认删除所有资源? (y/N): " confirm
     if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
-        docker-compose down -v --rmi all
+        $DOCKER_COMPOSE down -v --rmi all
         print_message "清理完成"
     else
         print_message "取消清理"
