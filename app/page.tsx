@@ -232,9 +232,19 @@ export default function Home() {
         {/* 流量数据分时段分析 */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="mb-4">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-xl font-semibold text-gray-900">流量数据分时段分析</h2>
-              <div className="flex gap-2">
+            <h2 className="text-xl font-semibold text-gray-900 mb-3">流量数据分时段分析</h2>
+            <div className="flex justify-between items-center gap-4">
+              <CustomDatePicker
+                startDate={flowStartDate}
+                endDate={flowEndDate}
+                onStartDateChange={setFlowStartDate}
+                onEndDateChange={setFlowEndDate}
+                onQuery={loadFlowAnalysis}
+                maxDays={30}
+                color="blue"
+                cacheKey="flowDateRange"
+              />
+              <div className="flex gap-2 flex-shrink-0">
                 <button
                   onClick={() => setFlowViewMode(flowViewMode === 'table' ? 'chart' : 'table')}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm"
@@ -254,16 +264,6 @@ export default function Home() {
                 </button>
               </div>
             </div>
-            <CustomDatePicker
-              startDate={flowStartDate}
-              endDate={flowEndDate}
-              onStartDateChange={setFlowStartDate}
-              onEndDateChange={setFlowEndDate}
-              onQuery={loadFlowAnalysis}
-              maxDays={30}
-              color="blue"
-              cacheKey="flowDateRange"
-            />
           </div>
           <div className="max-h-[600px] overflow-y-auto">
             {flowViewMode === 'table' ? (
@@ -277,9 +277,19 @@ export default function Home() {
         {/* 岩湖水厂能效分析 */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="mb-4">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-xl font-semibold text-gray-900">岩湖水厂能效分析</h2>
-              <div className="flex gap-2">
+            <h2 className="text-xl font-semibold text-gray-900 mb-3">岩湖水厂能效分析</h2>
+            <div className="flex justify-between items-center gap-4">
+              <CustomDatePicker
+                startDate={efficiencyStartDate}
+                endDate={efficiencyEndDate}
+                onStartDateChange={setEfficiencyStartDate}
+                onEndDateChange={setEfficiencyEndDate}
+                onQuery={loadEfficiencyAnalysis}
+                maxDays={30}
+                color="green"
+                cacheKey="efficiencyDateRange"
+              />
+              <div className="flex gap-2 flex-shrink-0">
                 <button
                   onClick={() => setEfficiencyViewMode(efficiencyViewMode === 'table' ? 'chart' : 'table')}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm"
@@ -299,16 +309,6 @@ export default function Home() {
                 </button>
               </div>
             </div>
-            <CustomDatePicker
-              startDate={efficiencyStartDate}
-              endDate={efficiencyEndDate}
-              onStartDateChange={setEfficiencyStartDate}
-              onEndDateChange={setEfficiencyEndDate}
-              onQuery={loadEfficiencyAnalysis}
-              maxDays={30}
-              color="green"
-              cacheKey="efficiencyDateRange"
-            />
           </div>
           <div className="max-h-[600px] overflow-y-auto">
             {efficiencyViewMode === 'table' ? (

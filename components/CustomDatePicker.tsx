@@ -176,20 +176,20 @@ export function CustomDatePicker({
       <div className="flex items-center gap-2">
         <button
           onClick={() => openCalendar('start')}
-          className={`inline-flex items-center gap-2 px-4 py-2 text-sm border-2 ${colors.border} rounded-lg bg-white hover:shadow-md transition-all`}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition text-sm"
         >
-          <Calendar size={16} className={color === 'blue' ? 'text-blue-600' : 'text-green-600'} />
-          <span className="text-sm font-semibold text-gray-900">{formatDate(startDate)}</span>
+          <Calendar size={14} />
+          <span>{formatDate(startDate)}</span>
         </button>
 
-        <span className="text-gray-400 font-bold">→</span>
+        <span className="text-gray-400">→</span>
 
         <button
           onClick={() => openCalendar('end')}
-          className={`inline-flex items-center gap-2 px-4 py-2 text-sm border-2 ${colors.border} rounded-lg bg-white hover:shadow-md transition-all`}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition text-sm"
         >
-          <Calendar size={16} className={color === 'blue' ? 'text-blue-600' : 'text-green-600'} />
-          <span className="text-sm font-semibold text-gray-900">{formatDate(endDate)}</span>
+          <Calendar size={14} />
+          <span>{formatDate(endDate)}</span>
         </button>
       </div>
 
@@ -256,7 +256,7 @@ export function CustomDatePicker({
       {/* 查询按钮 */}
       <button
         onClick={onQuery}
-        className={`px-6 py-2 ${colors.button} text-white rounded-lg transition-all text-sm font-semibold shadow-md hover:shadow-lg`}
+        className={`flex items-center gap-1.5 px-3 py-1.5 ${colors.button} text-white rounded hover:${color === 'blue' ? 'bg-blue-700' : 'bg-green-700'} transition text-sm`}
       >
         查询数据
       </button>
@@ -264,7 +264,7 @@ export function CustomDatePicker({
       {/* 最近7天按钮 */}
       <button
         onClick={selectLast7Days}
-        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-all text-sm font-semibold shadow-md hover:shadow-lg"
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm"
       >
         最近7天
       </button>
