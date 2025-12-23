@@ -12,7 +12,8 @@ import { EfficiencyAnalysisTable } from '@/components/EfficiencyAnalysisTable';
 import { FlowAnalysisCharts } from '@/components/FlowAnalysisCharts';
 import { EfficiencyAnalysisCharts } from '@/components/EfficiencyAnalysisCharts';
 import { CustomDatePicker } from '@/components/CustomDatePicker';
-import { Download, BarChart3, Table, Search } from 'lucide-react';
+import { Download, BarChart3, Table, Search, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Home() {
   const [latestData, setLatestData] = useState<any>(null);
@@ -225,10 +226,19 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      {/* 标题 */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">福安数据仪表盘</h1>
-        <p className="text-gray-600 mt-2">实时监控水厂运行数据与能效分析</p>
+      {/* 标题和导航 */}
+      <div className="mb-6 flex items-start justify-between">
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold text-gray-900">福安数据仪表盘</h1>
+          <p className="text-gray-600 mt-2">实时监控水厂运行数据与能效分析</p>
+        </div>
+        <Link
+          href="/correlation"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+        >
+          <TrendingUp size={20} />
+          <span>关联分析</span>
+        </Link>
       </div>
 
       {/* 实时数据面板 */}
