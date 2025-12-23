@@ -49,13 +49,31 @@
 
 ## 安装和运行
 
-### 1. 安装依赖
+### 方式一：Docker 部署（推荐）
+
+使用 Docker 快速部署，详见 [DEPLOY.md](./DEPLOY.md)
+
+```bash
+# 1. 配置环境变量
+cp env.example .env
+# 编辑 .env 填入数据库配置
+
+# 2. 启动服务
+./deploy.sh start
+
+# 3. 访问应用
+# http://localhost:5656
+```
+
+### 方式二：本地开发
+
+#### 1. 安装依赖
 
 ```bash
 npm install
 ```
 
-### 2. 启动开发服务器
+#### 2. 启动开发服务器
 
 ```bash
 npm run dev
@@ -63,7 +81,7 @@ npm run dev
 
 访问 [http://localhost:3000](http://localhost:3000) 查看应用。
 
-### 3. 构建生产版本
+#### 3. 构建生产版本
 
 ```bash
 npm run build
