@@ -47,32 +47,81 @@ export function RegressionResults({ result, xFields, yField, getFieldLabel }: Re
 
       {/* 统计指标 */}
       {result.r2_train !== undefined && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <div className="text-sm text-gray-700 font-medium">训练集 R²</div>
-            <div className="text-2xl font-bold text-blue-700">
-              {result.r2_train.toFixed(4)}
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+              <div className="text-sm text-gray-700 font-medium">训练集 R²</div>
+              <div className="text-2xl font-bold text-blue-700">
+                {result.r2_train.toFixed(4)}
+              </div>
+              <div className="text-xs text-gray-600 mt-1">
+                {result.r2_train > 0.9 ? '✓ 优秀' : result.r2_train > 0.7 ? '✓ 良好' : result.r2_train > 0.5 ? '△ 一般' : '✗ 较差'}
+              </div>
+            </div>
+            <div className="p-4 bg-green-50 rounded-lg border-2 border-green-200">
+              <div className="text-sm text-gray-700 font-medium">测试集 R²</div>
+              <div className="text-2xl font-bold text-green-700">
+                {result.r2_test?.toFixed(4)}
+              </div>
+              <div className="text-xs text-gray-600 mt-1">
+                {(result.r2_test ?? 0) > 0.9 ? '✓ 优秀' : (result.r2_test ?? 0) > 0.7 ? '✓ 良好' : (result.r2_test ?? 0) > 0.5 ? '△ 一般' : '✗ 较差'}
+              </div>
+            </div>
+            <div className="p-4 bg-orange-50 rounded-lg">
+              <div className="text-sm text-gray-700 font-medium">训练集 MSE</div>
+              <div className="text-2xl font-bold text-orange-700">
+                {result.mse_train?.toFixed(4)}
+              </div>
+              <div className="text-xs text-gray-600 mt-1">越小越好</div>
+            </div>
+            <div className="p-4 bg-purple-50 rounded-lg">
+              <div className="text-sm text-gray-700 font-medium">测试集 MSE</div>
+              <div className="text-2xl font-bold text-purple-700">
+                {result.mse_test?.toFixed(4)}
+              </div>
+              <div className="text-xs text-gray-600 mt-1">越小越好</div>
             </div>
           </div>
-          <div className="p-4 bg-green-50 rounded-lg">
-            <div className="text-sm text-gray-700 font-medium">测试集 R²</div>
-            <div className="text-2xl font-bold text-green-700">
-              {result.r2_test?.toFixed(4)}
+          
+          {/* R²和MSE说明 */}
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
+            <div className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <span className="text-blue-600">📊</span>
+              <span>评价指标说明</span>
             </div>
-          </div>
-          <div className="p-4 bg-orange-50 rounded-lg">
-            <div className="text-sm text-gray-700 font-medium">训练集 MSE</div>
-            <div className="text-2xl font-bold text-orange-700">
-              {result.mse_train?.toFixed(4)}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-700">
+              <div>
+                <div className="font-semibold text-blue-700 mb-1">R² (决定系数)</div>
+                <ul className="space-y-1 list-disc list-inside">
+                  <li><strong>范围</strong>: 0 ~ 1（越接近1越好）</li>
+                  <li><strong>含义</strong>: 模型解释了多少数据变异</li>
+                  <li><strong>评价</strong>:
+                    <div className="ml-4 mt-1">
+                      <div>• R² &gt; 0.9: 优秀拟合</div>
+                      <div>• 0.7 &lt; R² ≤ 0.9: 良好拟合</div>
+                      <div>• 0.5 &lt; R² ≤ 0.7: 一般拟合</div>
+                      <div>• R² ≤ 0.5: 较差拟合</div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <div className="font-semibold text-orange-700 mb-1">MSE (均方误差)</div>
+                <ul className="space-y-1 list-disc list-inside">
+                  <li><strong>范围</strong>: 0 ~ ∞（越接近0越好）</li>
+                  <li><strong>含义</strong>: 预测值与实际值的平均偏差</li>
+                  <li><strong>特点</strong>: 对大误差更敏感</li>
+                  <li><strong>注意</strong>: 训练集和测试集MSE不应相差太大，否则可能过拟合</li>
+                </ul>
+              </div>
             </div>
+            {result.r2_train - (result.r2_test ?? 0) > 0.1 && (
+              <div className="mt-3 p-2 bg-yellow-50 border border-yellow-300 rounded text-xs text-yellow-800">
+                ⚠️ <strong>提示</strong>: 训练集和测试集R²差异较大 ({(result.r2_train - (result.r2_test ?? 0)).toFixed(3)})，可能存在过拟合。建议调整模型参数或增加数据量。
+              </div>
+            )}
           </div>
-          <div className="p-4 bg-purple-50 rounded-lg">
-            <div className="text-sm text-gray-700 font-medium">测试集 MSE</div>
-            <div className="text-2xl font-bold text-purple-700">
-              {result.mse_test?.toFixed(4)}
-            </div>
-          </div>
-        </div>
+        </>
       )}
 
       {/* 回归方程 */}

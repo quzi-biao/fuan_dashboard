@@ -43,8 +43,8 @@ export function DIDResults({ result, yField, interventionDate, getFieldLabel }: 
       {result.did_effect !== undefined && (
         <div className="space-y-6 mb-6">
           {/* 主要效应指标 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-blue-50 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
               <div className="text-sm text-gray-700 font-medium">DID 效应值</div>
               <div className="text-2xl font-bold text-blue-700">
                 {result.did_effect.toFixed(4)}
@@ -53,13 +53,39 @@ export function DIDResults({ result, yField, interventionDate, getFieldLabel }: 
                 {result.did_effect > 0 ? '✓ 正向影响' : '✗ 负向影响'}
               </div>
             </div>
-            <div className="p-4 bg-green-50 rounded-lg">
+            <div className="p-4 bg-green-50 rounded-lg border-2 border-green-200">
               <div className="text-sm text-gray-700 font-medium">显著性 (p-value)</div>
               <div className="text-2xl font-bold text-green-700">
                 {result.did_p_value?.toFixed(4)}
               </div>
               <div className="text-xs text-gray-600 mt-1">
-                {(result.did_p_value ?? 1) < 0.05 ? '✓ 显著 (p<0.05)' : '⚠ 不显著'}
+                {(result.did_p_value ?? 1) < 0.05 ? '✓ 显著 (p<0.05)' : (result.did_p_value ?? 1) < 0.1 ? '△ 边缘显著 (p<0.1)' : '✗ 不显著'}
+              </div>
+            </div>
+          </div>
+          
+          {/* p-value说明 */}
+          <div className="mb-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
+            <div className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <span className="text-green-600">📈</span>
+              <span>统计显著性说明</span>
+            </div>
+            <div className="text-xs text-gray-700 space-y-2">
+              <div>
+                <strong className="text-green-700">p-value (显著性水平)</strong>
+                <ul className="list-disc list-inside ml-2 mt-1 space-y-1">
+                  <li><strong>范围</strong>: 0 ~ 1（越小越显著）</li>
+                  <li><strong>含义</strong>: 观察到的效应是随机产生的概率</li>
+                  <li><strong>评价标准</strong>:
+                    <div className="ml-4 mt-1">
+                      <div>• p &lt; 0.01: 高度显著 ***</div>
+                      <div>• p &lt; 0.05: 显著 **</div>
+                      <div>• p &lt; 0.1: 边缘显著 *</div>
+                      <div>• p ≥ 0.1: 不显著</div>
+                    </div>
+                  </li>
+                  <li><strong>解释</strong>: p-value越小，说明干预效应越可靠，不是偶然产生的</li>
+                </ul>
               </div>
             </div>
           </div>

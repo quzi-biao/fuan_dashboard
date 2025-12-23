@@ -32,6 +32,9 @@ importers:
       recharts:
         specifier: ^3.6.0
         version: 3.6.0(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react-is@16.13.1)(react@19.2.3)(redux@5.0.1)
+      synaptic:
+        specifier: ^1.1.4
+        version: 1.1.4
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4
@@ -48,6 +51,9 @@ importers:
       '@types/recharts':
         specifier: ^2.0.1
         version: 2.0.1(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react-is@16.13.1)(react@19.2.3)(redux@5.0.1)
+      '@types/synaptic':
+        specifier: ^1.0.8
+        version: 1.0.8
       babel-plugin-react-compiler:
         specifier: 1.0.0
         version: 1.0.0
@@ -638,6 +644,9 @@ packages:
   '@types/recharts@2.0.1':
     resolution: {integrity: sha512-/cFs7oiafzByUwBSWA1IzE6FW+ppPwQAWsDTadSgVOwzveY9MESpyLHyyHY0SfPPKLW4+4qVNYHPXd0rFiC8vg==, tarball: https://registry.npmmirror.com/@types/recharts/-/recharts-2.0.1.tgz}
     deprecated: This is a stub types definition. recharts provides its own type definitions, so you do not need this installed.
+
+  '@types/synaptic@1.0.8':
+    resolution: {integrity: sha512-dVD+L+a6XB64Odhy7CYVoW3iA8AYWw3IKhKb4HmbEkyee8JmPWm0utBuSL5KYpPiqjdh/zW4hA+NAJj5MA2A1g==, tarball: https://registry.npmmirror.com/@types/synaptic/-/synaptic-1.0.8.tgz}
 
   '@types/use-sync-external-store@0.0.6':
     resolution: {integrity: sha512-zFDAD+tlpf2r4asuHEj0XH6pY6i0g5NeAHPn+15wk3BV6JA69eERFXC1gyGThDkVa1zCyKr5jox1+2LbV/AMLg==, tarball: https://registry.npmmirror.com/@types/use-sync-external-store/-/use-sync-external-store-0.0.6.tgz}
@@ -2079,6 +2088,10 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==, tarball: https://registry.npmmirror.com/supports-preserve-symlinks-flag/-/supports-preserve-symlinks-flag-1.0.0.tgz}
     engines: {node: '>= 0.4'}
 
+  synaptic@1.1.4:
+    resolution: {integrity: sha512-JFtU98VDFI0uBTowgySo+UUEkc7rSVHaxx9D6dR5BK6u81G7uAxcp32Gi2SHciLpFbvJVd1Pfz7aqSNQO4EH9Q==, tarball: https://registry.npmmirror.com/synaptic/-/synaptic-1.1.4.tgz}
+    engines: {node: '>=4'}
+
   tabbable@6.3.0:
     resolution: {integrity: sha512-EIHvdY5bPLuWForiR/AN2Bxngzpuwn1is4asboytXtpTgsArc+WmSJKVLlhdh71u7jFcryDqB2A8lQvj78MkyQ==, tarball: https://registry.npmmirror.com/tabbable/-/tabbable-6.3.0.tgz}
 
@@ -2730,6 +2743,8 @@ snapshots:
       - react-dom
       - react-is
       - redux
+
+  '@types/synaptic@1.0.8': {}
 
   '@types/use-sync-external-store@0.0.6': {}
 
@@ -4365,6 +4380,8 @@ snapshots:
       has-flag: 4.0.0
 
   supports-preserve-symlinks-flag@1.0.0: {}
+
+  synaptic@1.1.4: {}
 
   tabbable@6.3.0: {}
 

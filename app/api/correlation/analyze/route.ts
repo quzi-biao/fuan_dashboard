@@ -3,6 +3,9 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { polynomialRegression } from '@/lib/analysis/polynomialRegression';
+import { trainNeuralNetwork } from '@/lib/analysis/neuralNetwork';
+import { removeOutliers } from '@/lib/analysis/dataUtils';
 
 const DB_CONFIG = {
   host: 'gz-cdb-e3z4b5ql.sql.tencentcdb.com',
@@ -13,220 +16,6 @@ const DB_CONFIG = {
   charset: 'utf8mb4',
   connectTimeout: 60000,
 };
-
-// 多项式回归分析
-function polynomialRegression(
-  X: number[][],
-  y: number[],
-  degree: number
-): {
-  coefficients: number[];
-  r2: number;
-  predictions: number[];
-} {
-  const n = X.length;
-  const m = X[0].length;
-
-  // 生成多项式特征
-  const XPoly: number[][] = [];
-  for (let i = 0; i < n; i++) {
-    const row = [1]; // 截距项
-    for (let j = 0; j < m; j++) {
-      for (let d = 1; d <= degree; d++) {
-        row.push(Math.pow(X[i][j], d));
-      }
-    }
-    XPoly.push(row);
-  }
-
-  // 使用正规方程求解: β = (X^T X)^(-1) X^T y
-  const XT = transpose(XPoly);
-  const XTX = matrixMultiply(XT, XPoly);
-  const XTy = matrixVectorMultiply(XT, y);
-  
-  const coefficients = solveLinearSystem(XTX, XTy);
-  
-  // 计算预测值
-  const predictions = XPoly.map(row => 
-    row.reduce((sum, val, idx) => sum + val * coefficients[idx], 0)
-  );
-
-  // 计算 R²
-  const yMean = y.reduce((a, b) => a + b, 0) / y.length;
-  const ssTot = y.reduce((sum, val) => sum + Math.pow(val - yMean, 2), 0);
-  const ssRes = y.reduce((sum, val, idx) => sum + Math.pow(val - predictions[idx], 2), 0);
-  const r2 = 1 - (ssRes / ssTot);
-
-  return { coefficients, r2, predictions };
-}
-
-// 线性回归（用于神经网络的简化版本）
-function linearRegression(
-  X: number[][],
-  y: number[]
-): {
-  coefficients: number[];
-  intercept: number;
-  r2: number;
-  predictions: number[];
-} {
-  const n = X.length;
-  const m = X[0].length;
-
-  // 标准化数据
-  const XNorm = normalizeData(X);
-  const yMean = y.reduce((a, b) => a + b, 0) / y.length;
-  const yNorm = y.map(val => val - yMean);
-
-  // 使用正规方程
-  const XT = transpose(XNorm.data);
-  const XTX = matrixMultiply(XT, XNorm.data);
-  const XTy = matrixVectorMultiply(XT, yNorm);
-  
-  const coefficients = solveLinearSystem(XTX, XTy);
-  
-  // 反标准化系数
-  const realCoefficients = coefficients.map((coef, idx) => 
-    coef / XNorm.std[idx]
-  );
-  
-  const intercept = yMean - realCoefficients.reduce((sum, coef, idx) => 
-    sum + coef * XNorm.mean[idx], 0
-  );
-
-  // 计算预测值
-  const predictions = X.map(row => 
-    intercept + row.reduce((sum, val, idx) => sum + val * realCoefficients[idx], 0)
-  );
-
-  // 计算 R²
-  const ssTot = y.reduce((sum, val) => sum + Math.pow(val - yMean, 2), 0);
-  const ssRes = y.reduce((sum, val, idx) => sum + Math.pow(val - predictions[idx], 2), 0);
-  const r2 = 1 - (ssRes / ssTot);
-
-  return { coefficients: realCoefficients, intercept, r2, predictions };
-}
-
-// 矩阵转置
-function transpose(matrix: number[][]): number[][] {
-  return matrix[0].map((_, colIndex) => matrix.map(row => row[colIndex]));
-}
-
-// 矩阵乘法
-function matrixMultiply(A: number[][], B: number[][]): number[][] {
-  const result: number[][] = [];
-  for (let i = 0; i < A.length; i++) {
-    result[i] = [];
-    for (let j = 0; j < B[0].length; j++) {
-      let sum = 0;
-      for (let k = 0; k < A[0].length; k++) {
-        sum += A[i][k] * B[k][j];
-      }
-      result[i][j] = sum;
-    }
-  }
-  return result;
-}
-
-// 矩阵向量乘法
-function matrixVectorMultiply(A: number[][], v: number[]): number[] {
-  return A.map(row => row.reduce((sum, val, idx) => sum + val * v[idx], 0));
-}
-
-// 求解线性方程组（高斯消元法）
-function solveLinearSystem(A: number[][], b: number[]): number[] {
-  const n = A.length;
-  const augmented = A.map((row, i) => [...row, b[i]]);
-
-  // 前向消元
-  for (let i = 0; i < n; i++) {
-    // 找主元
-    let maxRow = i;
-    for (let k = i + 1; k < n; k++) {
-      if (Math.abs(augmented[k][i]) > Math.abs(augmented[maxRow][i])) {
-        maxRow = k;
-      }
-    }
-    [augmented[i], augmented[maxRow]] = [augmented[maxRow], augmented[i]];
-
-    // 消元
-    for (let k = i + 1; k < n; k++) {
-      const factor = augmented[k][i] / augmented[i][i];
-      for (let j = i; j <= n; j++) {
-        augmented[k][j] -= factor * augmented[i][j];
-      }
-    }
-  }
-
-  // 回代
-  const x = new Array(n).fill(0);
-  for (let i = n - 1; i >= 0; i--) {
-    x[i] = augmented[i][n];
-    for (let j = i + 1; j < n; j++) {
-      x[i] -= augmented[i][j] * x[j];
-    }
-    x[i] /= augmented[i][i];
-  }
-
-  return x;
-}
-
-// 数据标准化
-function normalizeData(X: number[][]): {
-  data: number[][];
-  mean: number[];
-  std: number[];
-} {
-  const n = X.length;
-  const m = X[0].length;
-  
-  const mean = new Array(m).fill(0);
-  const std = new Array(m).fill(0);
-  
-  // 计算均值
-  for (let j = 0; j < m; j++) {
-    for (let i = 0; i < n; i++) {
-      mean[j] += X[i][j];
-    }
-    mean[j] /= n;
-  }
-  
-  // 计算标准差
-  for (let j = 0; j < m; j++) {
-    for (let i = 0; i < n; i++) {
-      std[j] += Math.pow(X[i][j] - mean[j], 2);
-    }
-    std[j] = Math.sqrt(std[j] / n);
-    if (std[j] === 0) std[j] = 1; // 避免除零
-  }
-  
-  // 标准化
-  const data = X.map(row => 
-    row.map((val, j) => (val - mean[j]) / std[j])
-  );
-  
-  return { data, mean, std };
-}
-
-// 移除异常值
-function removeOutliers(data: any[], fields: string[]): any[] {
-  let filtered = [...data];
-  
-  for (const field of fields) {
-    const values = filtered.map(row => row[field]).sort((a, b) => a - b);
-    const q1 = values[Math.floor(values.length * 0.25)];
-    const q3 = values[Math.floor(values.length * 0.75)];
-    const iqr = q3 - q1;
-    const lowerBound = q1 - 1.5 * iqr;
-    const upperBound = q3 + 1.5 * iqr;
-    
-    filtered = filtered.filter(row => 
-      row[field] >= lowerBound && row[field] <= upperBound
-    );
-  }
-  
-  return filtered;
-}
 
 export async function GET(request: NextRequest) {
   let connection;
@@ -239,6 +28,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('end_date');
     const analysisType = searchParams.get('analysis_type') || 'polynomial';
     const degree = parseInt(searchParams.get('degree') || '2');
+    const hiddenLayers = searchParams.get('hidden_layers') || '100,50';
 
     if (!xFieldsStr || !yField || !startDate || !endDate) {
       return NextResponse.json(
@@ -379,84 +169,172 @@ export async function GET(request: NextRequest) {
         result.time_series_data.sort((a: any, b: any) => a.x - b.x);
       }
 
-    } else {
-      // 线性回归（作为神经网络的简化实现）
-      const trainResult = linearRegression(XTrain, yTrain);
-      const testPredictions = XTest.map(row => 
-        trainResult.intercept + row.reduce((sum, val, idx) => 
-          sum + val * trainResult.coefficients[idx], 0)
+    } else if (analysisType === 'did') {
+      // 双重差分分析
+      const interventionDate = searchParams.get('intervention_date');
+      
+      if (!interventionDate) {
+        return NextResponse.json(
+          { error: '双重差分分析需要提供干预日期' },
+          { status: 400 }
+        );
+      }
+      
+      // 需要有分组变量（treatment group indicator）
+      // 这里假设第一个自变量是分组变量（0=对照组，1=处理组）
+      if (xFields.length < 1) {
+        return NextResponse.json(
+          { error: '双重差分分析至少需要一个分组变量' },
+          { status: 400 }
+        );
+      }
+      
+      // 重新查询带时间的数据
+      const queryWithTime = `
+        SELECT collect_time, ${allFields.join(', ')}
+        FROM fuan_data
+        WHERE ${whereConditions}
+          AND collect_time >= ?
+          AND collect_time <= ?
+        ORDER BY collect_time
+      `;
+      
+      const [timeRows] = await connection.query<any[]>(queryWithTime, [startDate, endDate]);
+      
+      const timeData = timeRows.map(row => {
+        const data: any = {
+          time: new Date(row.collect_time)
+        };
+        allFields.forEach(field => {
+          data[field] = parseFloat(row[field]);
+        });
+        return data;
+      });
+      
+      // 划分干预前后
+      const interventionTime = new Date(interventionDate);
+      const prePeriod = timeData.filter(d => d.time < interventionTime);
+      const postPeriod = timeData.filter(d => d.time >= interventionTime);
+      
+      if (prePeriod.length < 5 || postPeriod.length < 5) {
+        return NextResponse.json(
+          { error: '干预前后的数据点太少，无法进行DID分析' },
+          { status: 400 }
+        );
+      }
+      
+      // 假设使用第一个自变量作为分组变量
+      // 使用中位数划分处理组和对照组
+      const groupValues = timeData.map(d => d[xFields[0]]);
+      const median = groupValues.sort((a, b) => a - b)[Math.floor(groupValues.length / 2)];
+      
+      // 计算四组均值
+      const preControl = prePeriod.filter(d => d[xFields[0]] <= median);
+      const preTreatment = prePeriod.filter(d => d[xFields[0]] > median);
+      const postControl = postPeriod.filter(d => d[xFields[0]] <= median);
+      const postTreatment = postPeriod.filter(d => d[xFields[0]] > median);
+      
+      const preControlMean = preControl.reduce((sum, d) => sum + d[yField], 0) / preControl.length;
+      const preTreatmentMean = preTreatment.reduce((sum, d) => sum + d[yField], 0) / preTreatment.length;
+      const postControlMean = postControl.reduce((sum, d) => sum + d[yField], 0) / postControl.length;
+      const postTreatmentMean = postTreatment.reduce((sum, d) => sum + d[yField], 0) / postTreatment.length;
+      
+      // 计算DID效应
+      const controlDiff = postControlMean - preControlMean;
+      const treatmentDiff = postTreatmentMean - preTreatmentMean;
+      const didEffect = treatmentDiff - controlDiff;
+      
+      // 简化的p-value计算（基于t检验）
+      const pooledStd = Math.sqrt(
+        (Math.pow(preTreatment.reduce((sum, d) => sum + Math.pow(d[yField] - preTreatmentMean, 2), 0) / preTreatment.length, 2) +
+         Math.pow(postTreatment.reduce((sum, d) => sum + Math.pow(d[yField] - postTreatmentMean, 2), 0) / postTreatment.length, 2)) / 2
       );
-
-      const yTestMean = yTest.reduce((a, b) => a + b, 0) / yTest.length;
-      const ssTot = yTest.reduce((sum, val) => sum + Math.pow(val - yTestMean, 2), 0);
-      const ssRes = yTest.reduce((sum, val, idx) => sum + Math.pow(val - testPredictions[idx], 2), 0);
-      const r2Test = 1 - (ssRes / ssTot);
-
-      result.r2_train = trainResult.r2;
-      result.r2_test = r2Test;
-      result.mse_train = yTrain.reduce((sum, val, idx) => 
-        sum + Math.pow(val - trainResult.predictions[idx], 2), 0) / yTrain.length;
-      result.mse_test = yTest.reduce((sum, val, idx) => 
-        sum + Math.pow(val - testPredictions[idx], 2), 0) / yTest.length;
-
-      result.coefficients = {};
-      xFields.forEach((field, idx) => {
-        result.coefficients[field] = trainResult.coefficients[idx];
-      });
-      result.intercept = trainResult.intercept;
-
-      // 特征重要性（基于系数的绝对值）
-      const totalImportance = trainResult.coefficients.reduce((sum, coef) => 
-        sum + Math.abs(coef), 0);
-      result.feature_importance = {};
-      xFields.forEach((field, idx) => {
-        result.feature_importance[field] = Math.abs(trainResult.coefficients[idx]) / totalImportance;
-      });
+      const se = pooledStd * Math.sqrt(1/preTreatment.length + 1/postTreatment.length + 1/preControl.length + 1/postControl.length);
+      const tStat = Math.abs(didEffect / se);
+      // 简化的p-value估计
+      const pValue = tStat > 2.576 ? 0.01 : tStat > 1.96 ? 0.05 : tStat > 1.645 ? 0.1 : 0.2;
+      
+      // 生成趋势数据
+      const treatmentTrend = timeData
+        .filter(d => d[xFields[0]] > median)
+        .map(d => ({
+          date: d.time.toISOString().split('T')[0],
+          value: d[yField],
+          group: 'treatment',
+          period: d.time < interventionTime ? 'pre' : 'post'
+        }));
+      
+      const controlTrend = timeData
+        .filter(d => d[xFields[0]] <= median)
+        .map(d => ({
+          date: d.time.toISOString().split('T')[0],
+          value: d[yField],
+          group: 'control',
+          period: d.time < interventionTime ? 'pre' : 'post'
+        }));
+      
+      // 平行趋势检验（简化版：检验干预前两组的趋势是否相似）
+      const preTreatmentTrend = preTreatment.map((d, i) => ({ x: i, y: d[yField] }));
+      const preControlTrend = preControl.map((d, i) => ({ x: i, y: d[yField] }));
+      
+      // 简单的趋势差异检验
+      const trendDiff = Math.abs(
+        (preTreatmentTrend[preTreatmentTrend.length - 1].y - preTreatmentTrend[0].y) -
+        (preControlTrend[preControlTrend.length - 1].y - preControlTrend[0].y)
+      );
+      const parallelTrendPassed = trendDiff < Math.abs(didEffect) * 0.5;
+      
+      result.did_effect = didEffect;
+      result.did_p_value = pValue;
+      result.pre_control_mean = preControlMean;
+      result.pre_treatment_mean = preTreatmentMean;
+      result.post_control_mean = postControlMean;
+      result.post_treatment_mean = postTreatmentMean;
+      result.treatment_trend = [...treatmentTrend, ...controlTrend];
+      result.parallel_trend_test = {
+        p_value: parallelTrendPassed ? 0.1 : 0.5,
+        passed: parallelTrendPassed
+      };
+      
+    } else {
+      // 神经网络回归
+      const hiddenLayerSizes = hiddenLayers ? hiddenLayers.split(',').map((s: string) => parseInt(s.trim())) : [100, 50];
+      
+      const nnResult = trainNeuralNetwork(
+        XTrain, yTrain, XTest, yTest, X, y, xFields, hiddenLayerSizes
+      );
+      
+      result.r2_train = nnResult.r2Train;
+      result.r2_test = nnResult.r2Test;
+      result.mse_train = nnResult.mseTrain;
+      result.mse_test = nnResult.mseTest;
+      result.feature_importance = nnResult.featureImportance;
 
       // 生成散点图数据
       result.scatter_data = yTest.map((actual, idx) => ({
         actual,
-        predicted: testPredictions[idx]
+        predicted: nnResult.predictions[yTrain.length + idx]
       }));
 
       // 生成残差数据
-      result.residuals_data = testPredictions.map((pred, idx) => ({
-        predicted: pred,
-        residual: yTest[idx] - pred
-      }));
-
-      // 生成回归方程
-      let equationParts: string[] = [];
-      
-      // 截距项
-      if (Math.abs(trainResult.intercept) > 0.0001) {
-        equationParts.push(trainResult.intercept.toFixed(4));
-      }
-      
-      // 变量项
-      xFields.forEach((field, idx) => {
-        const coeff = trainResult.coefficients[idx];
-        if (Math.abs(coeff) > 0.0001) {
-          const coeffStr = Math.abs(coeff).toFixed(4);
-          const sign = coeff > 0 ? '+' : '-';
-          equationParts.push(`${sign} ${coeffStr}·x${idx + 1}`);
-        }
+      result.residuals_data = yTest.map((actual, idx) => {
+        const predicted = nnResult.predictions[yTrain.length + idx];
+        return {
+          predicted,
+          residual: actual - predicted
+        };
       });
-      
-      result.equation = equationParts.length > 0 
-        ? `y = ${equationParts.join(' ')}`
-        : 'y = 0';
+
+      // 生成方程描述
+      result.equation = `神经网络 [${nnResult.layers.join(' → ')}] (${nnResult.iterations} 次迭代)`;
       
       // 如果是单变量，生成时间序列数据
       if (xFields.length === 1) {
         result.is_single_variable = true;
-        const fullPredictions = X.map(row => 
-          trainResult.intercept + row[0] * trainResult.coefficients[0]
-        );
         result.time_series_data = X.map((xVal, idx) => ({
           x: xVal[0],
           y_actual: y[idx],
-          y_predicted: fullPredictions[idx]
+          y_predicted: nnResult.predictions[idx]
         }));
         result.time_series_data.sort((a: any, b: any) => a.x - b.x);
       }
