@@ -5,7 +5,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LatestDataPanel } from '@/components/LatestDataPanel';
+import { MetricsPanel } from '@/components/MetricsPanel';
 import { PressurePanel } from '@/components/PressurePanel';
 import { FlowAnalysisTable } from '@/components/FlowAnalysisTable';
 import { EfficiencyAnalysisTable } from '@/components/EfficiencyAnalysisTable';
@@ -99,7 +99,7 @@ export default function Home() {
         efficiencyRes.json()
       ]);
 
-      setLatestData(latest.data);
+      setLatestData(latest); // 保存整个响应对象
       setPressureData(pressure.data);
       setPressureCollectTime(pressure.collect_time);
       setFlowAnalysis(flow.data);
@@ -231,8 +231,13 @@ export default function Home() {
         <p className="text-gray-600 mt-2">实时监控水厂运行数据与能效分析</p>
       </div>
 
-      {/* 最新数据面板 */}
-      <LatestDataPanel data={latestData} />
+      {/* 实时数据面板 */}
+      {latestData && latestData.data && (
+        <MetricsPanel 
+          data={latestData.data} 
+          collectTime={latestData.collect_time}
+        />
+      )}
 
       {/* 末端压力数据面板 */}
       <div className="mt-6">
