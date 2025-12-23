@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, Play, Download } from 'lucide-react';
 import Link from 'next/link';
 import { CustomDatePicker } from '@/components/CustomDatePicker';
+import { CustomSelect } from '@/components/CustomSelect';
 import {
   LineChart,
   Line,
@@ -33,6 +34,55 @@ interface AnalysisResult {
   residuals_data?: Array<{ predicted: number; residual: number }>;
   correlation_matrix?: Record<string, Record<string, number>>;
   equation?: string;
+}
+
+// 字段标签映射
+const FIELD_LABELS: Record<string, string> = {
+  // 末端压力计（根据 PressurePanel 组件中的配置）
+  'press_4137': '末端压力 - 一中新校区',
+  'press_9300': '末端压力 - 农垦人花苑',
+  'press_2366': '末端压力 - 涧里小区',
+  'press_6540': '末端压力 - 天马山庄',
+  'press_5385': '末端压力 - 农校',
+  'press_3873': '末端压力 - 阳头小学外墙',
+  'press_1665': '末端压力 - 老干新村',
+  
+  // 水厂指标（根据分析脚本推断）
+  'i_1034': '岩湖-出水流量',  // flow_out
+  'i_1030': '岩湖-出水压力',  // pressure_out
+  'i_1029': '岩湖-水位',
+  'i_1031': '岩湖-目标压力',
+  'i_1032': '岩湖-出水流量1',
+  'i_1033': '岩湖-出水流量2',
+  'i_1035': '岩湖-出水累计流量',
+  
+  // 泵相关指标
+  'i_1069': '岩湖-实时水电比',
+  'i_1070': '岩湖-实时能耗',
+  'i_1071': '岩湖-实时效率',
+  'i_1072': '岩湖-日累计电量',
+  'i_1073': '岩湖-日累计水量',
+  'i_1074': '岩湖-日累计水电比',
+  'i_1075': '岩湖-累计电量',
+  'i_1076': '岩湖-累计水量',
+  'i_1077': '岩湖-累计水电比',
+  
+  'i_1128': '城东-控制流量',
+  'i_1129': '城东-累计流量',
+  'i_1130': '城东-日用水量',
+  
+  // 其他指标
+  'i_1102': '城东-瞬时流量',
+  'i_1101': '城东-手动开度',
+  'i_1099': '城东-中控开度',
+  'i_1098': '城东-阀门开度',
+  'i_1097': '城东-水箱水位',
+  'i_1096': '城东-阀门增减量流量设置',
+};
+
+// 获取字段显示标签
+function getFieldLabel(field: string): string {
+  return FIELD_LABELS[field] || `${field} (未知)`;
 }
 
 export default function CorrelationAnalysisPage() {
@@ -180,20 +230,17 @@ export default function CorrelationAnalysisPage() {
           </label>
           {xFields.map((field, index) => (
             <div key={index} className="flex gap-2 mb-2">
-              <select
+              <CustomSelect
                 value={field}
-                onChange={(e) => updateXField(index, e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-              >
-                <option value="" className="text-gray-500">选择字段</option>
-                {availableFields.map(f => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-              </select>
+                onChange={(value) => updateXField(index, value)}
+                options={availableFields.map(f => ({ value: f, label: getFieldLabel(f) }))}
+                placeholder="选择字段"
+                className="flex-1"
+              />
               {xFields.length > 1 && (
                 <button
                   onClick={() => removeXField(index)}
-                  className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                  className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex-shrink-0"
                 >
                   删除
                 </button>
@@ -213,16 +260,12 @@ export default function CorrelationAnalysisPage() {
           <label className="block text-sm font-medium text-gray-900 mb-2">
             因变量（Dependent Variable）
           </label>
-          <select
+          <CustomSelect
             value={yField}
-            onChange={(e) => setYField(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-          >
-            <option value="" className="text-gray-500">选择字段</option>
-            {availableFields.map(f => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-          </select>
+            onChange={setYField}
+            options={availableFields.map(f => ({ value: f, label: getFieldLabel(f) }))}
+            placeholder="选择字段"
+          />
         </div>
 
         {/* 分析类型 */}
