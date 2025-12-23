@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- 背景圆形 -->
+  <circle cx="50" cy="50" r="48" fill="#0ea5e9" stroke="#0284c7" stroke-width="2"/>
+  
+  <!-- 水滴形状 -->
+  <path d="M 50 25 Q 40 35 40 45 Q 40 55 50 60 Q 60 55 60 45 Q 60 35 50 25 Z" 
+        fill="#ffffff" opacity="0.9"/>
+  
+  <!-- 数据柱状图 -->
+  <g opacity="0.85">
+    <!-- 第一根柱子 -->
+    <rect x="28" y="68" width="8" height="12" rx="1" fill="#ffffff"/>
+    <!-- 第二根柱子 -->
+    <rect x="40" y="62" width="8" height="18" rx="1" fill="#ffffff"/>
+    <!-- 第三根柱子 -->
+    <rect x="52" y="58" width="8" height="22" rx="1" fill="#ffffff"/>
+    <!-- 第四根柱子 -->
+    <rect x="64" y="65" width="8" height="15" rx="1" fill="#ffffff"/>
+  </g>
+  
+  <!-- 装饰性圆点 -->
+  <circle cx="50" cy="42" r="2.5" fill="#0ea5e9"/>
+  <circle cx="50" cy="50" r="2" fill="#0ea5e9"/>
+</svg>
