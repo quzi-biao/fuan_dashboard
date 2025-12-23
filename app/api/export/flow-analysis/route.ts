@@ -37,20 +37,53 @@ export async function GET(request: Request) {
     // 分析数据
     const analysis = analyzeFlowByElectricityPeriod(data);
     
-    // 生成CSV内容
+    // 按日期分组
+    const groupedByDate = analysis.reduce((acc, row) => {
+      if (!acc[row.date]) {
+        acc[row.date] = {};
+      }
+      acc[row.date][row.period] = row;
+      return acc;
+    }, {} as Record<string, Record<string, any>>);
+    
+    // 生成CSV内容 - 每个日期一行，包含所有时段
     const csvRows = [
-      ['日期', '时段', '城东平均流量(m³/h)', '岩湖平均流量(m³/h)', '城东累积流量(m³)', '岩湖累积流量(m³)', '总累积流量(m³)', '岩湖电量(kWh)'],
-      ...analysis.map(row => [
-        row.date,
-        row.period_name,
-        row.chengdong_avg_flow.toFixed(2),
-        row.yanhu_avg_flow.toFixed(2),
-        row.chengdong_cumulative_flow.toFixed(2),
-        row.yanhu_cumulative_flow.toFixed(2),
-        row.total_cumulative_flow.toFixed(2),
-        row.yanhu_electricity.toFixed(2)
-      ])
+      [
+        '日期',
+        '谷电城东流量(m³)', '谷电岩湖流量(m³)', '谷电岩湖电量(kWh)',
+        '平电城东流量(m³)', '平电岩湖流量(m³)', '平电岩湖电量(kWh)',
+        '峰电城东流量(m³)', '峰电岩湖流量(m³)', '峰电岩湖电量(kWh)',
+        '总计城东流量(m³)', '总计岩湖流量(m³)', '总计岩湖电量(kWh)', '总供水量(m³)'
+      ]
     ];
+    
+    // 按日期降序排序
+    const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
+    
+    sortedDates.forEach(date => {
+      const dayData = groupedByDate[date];
+      const valley = dayData['valley'] || {};
+      const flat = dayData['flat'] || {};
+      const peak = dayData['peak'] || {};
+      const total = dayData['total'] || {};
+      
+      csvRows.push([
+        date,
+        (valley.chengdong_cumulative_flow || 0).toFixed(1),
+        (valley.yanhu_cumulative_flow || 0).toFixed(1),
+        (valley.yanhu_electricity || 0).toFixed(1),
+        (flat.chengdong_cumulative_flow || 0).toFixed(1),
+        (flat.yanhu_cumulative_flow || 0).toFixed(1),
+        (flat.yanhu_electricity || 0).toFixed(1),
+        (peak.chengdong_cumulative_flow || 0).toFixed(1),
+        (peak.yanhu_cumulative_flow || 0).toFixed(1),
+        (peak.yanhu_electricity || 0).toFixed(1),
+        (total.chengdong_cumulative_flow || 0).toFixed(1),
+        (total.yanhu_cumulative_flow || 0).toFixed(1),
+        (total.yanhu_electricity || 0).toFixed(1),
+        (total.total_cumulative_flow || 0).toFixed(1)
+      ]);
+    });
     
     const csvContent = csvRows.map(row => row.join(',')).join('\n');
     const bom = '\uFEFF'; // UTF-8 BOM for Excel
