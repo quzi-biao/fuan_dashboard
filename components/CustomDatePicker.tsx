@@ -153,15 +153,17 @@ export function CustomDatePicker({
     }
   };
 
-  // 快捷选择最近7天
+  // 快捷选择最近7天（不包含今天）
   const selectLast7Days = () => {
     const today = new Date();
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(today.getDate() - 7);
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const sevenDaysAgo = new Date(yesterday);
+    sevenDaysAgo.setDate(yesterday.getDate() - 6); // 昨天往前推6天，共7天
     
     const formatDate = (date: Date) => date.toISOString().split('T')[0];
     onStartDateChange(formatDate(sevenDaysAgo));
-    onEndDateChange(formatDate(today));
+    onEndDateChange(formatDate(yesterday)); // 结束日期为昨天
     onQuery();
   };
 

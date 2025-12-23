@@ -24,14 +24,16 @@ export default function Home() {
   const [efficiencyStartDate, setEfficiencyStartDate] = useState('');
   const [efficiencyEndDate, setEfficiencyEndDate] = useState('');
 
-  // 初始化日期
+  // 初始化日期（不包含今天）
   useEffect(() => {
     const today = new Date();
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(today.getDate() - 7);
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const sevenDaysAgo = new Date(yesterday);
+    sevenDaysAgo.setDate(yesterday.getDate() - 6); // 昨天往前推6天，共7天
     
     const formatDate = (date: Date) => date.toISOString().split('T')[0];
-    const endDateStr = formatDate(today);
+    const endDateStr = formatDate(yesterday); // 结束日期为昨天
     const startDateStr = formatDate(sevenDaysAgo);
     
     // 检查缓存，如果有则从 CustomDatePicker 组件加载，否则设置默认值

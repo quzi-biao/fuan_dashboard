@@ -46,7 +46,7 @@ export async function getLatestData() {
   return rows[0] || null;
 }
 
-// 查询最近N天的数据
+// 查询最近N天的数据（不包含今天）
 export async function getRecentData(days: number = 7) {
   const pool = getPool();
   const [rows] = await pool.query<mysql.RowDataPacket[]>(`
@@ -58,7 +58,8 @@ export async function getRecentData(days: number = 7) {
       i_1072 as yanhu_daily_water,
       i_1073 as yanhu_daily_power
     FROM fuan_data
-    WHERE collect_time >= DATE_SUB(NOW(), INTERVAL ? DAY)
+    WHERE DATE(collect_time) >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+      AND DATE(collect_time) < CURDATE()
       AND (i_1102 > 0 OR i_1034 > 0)
     ORDER BY collect_time
   `, [days]);
