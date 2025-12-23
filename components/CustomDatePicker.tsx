@@ -1,0 +1,273 @@
+/**
+ * 自定义日历选择器
+ * 真正的日历视图，不使用原生 input
+ */
+'use client';
+
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+
+interface CustomDatePickerProps {
+  startDate: string;
+  endDate: string;
+  onStartDateChange: (date: string) => void;
+  onEndDateChange: (date: string) => void;
+  onQuery: () => void;
+  maxDays?: number;
+  color?: 'blue' | 'green';
+  cacheKey?: string;
+}
+
+export function CustomDatePicker({
+  startDate,
+  endDate,
+  onStartDateChange,
+  onEndDateChange,
+  onQuery,
+  maxDays = 30,
+  color = 'blue',
+  cacheKey = 'dateRange'
+}: CustomDatePickerProps) {
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [selectingType, setSelectingType] = useState<'start' | 'end'>('start');
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  // 缓存日期到 localStorage
+  useEffect(() => {
+    if (startDate && endDate) {
+      localStorage.setItem(cacheKey, JSON.stringify({ startDate, endDate }));
+    }
+  }, [startDate, endDate, cacheKey]);
+
+  const colorClasses = {
+    blue: {
+      button: 'bg-blue-600 hover:bg-blue-700',
+      selected: 'bg-blue-600 text-white',
+      hover: 'hover:bg-blue-100',
+      border: 'border-blue-500'
+    },
+    green: {
+      button: 'bg-green-600 hover:bg-green-700',
+      selected: 'bg-green-600 text-white',
+      hover: 'hover:bg-green-100',
+      border: 'border-green-500'
+    }
+  };
+
+  const colors = colorClasses[color];
+
+  // 格式化日期显示
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '选择日期';
+    const date = new Date(dateStr);
+    return `${date.getMonth() + 1}月${date.getDate()}日`;
+  };
+
+  const formatFullDate = (dateStr: string) => {
+    if (!dateStr) return '未选择';
+    const date = new Date(dateStr);
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+  };
+
+  // 点击外部关闭
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        setShowCalendar(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // 生成日历数据
+  const generateCalendar = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay();
+
+    const days: (number | null)[] = [];
+    
+    // 填充前面的空白
+    for (let i = 0; i < startDayOfWeek; i++) {
+      days.push(null);
+    }
+    
+    // 填充日期
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(i);
+    }
+
+    return days;
+  };
+
+  const handleDateClick = (day: number) => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    if (selectingType === 'start') {
+      onStartDateChange(dateStr);
+      setSelectingType('end');
+    } else {
+      onEndDateChange(dateStr);
+      setShowCalendar(false);
+    }
+  };
+
+  const isDateSelected = (day: number) => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return dateStr === startDate || dateStr === endDate;
+  };
+
+  const isDateInRange = (day: number) => {
+    if (!startDate || !endDate) return false;
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return dateStr > startDate && dateStr < endDate;
+  };
+
+  const prevMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
+  };
+
+  const openCalendar = (type: 'start' | 'end') => {
+    setSelectingType(type);
+    setShowCalendar(true);
+    // 设置当前月份为已选日期的月份
+    const dateToShow = type === 'start' ? startDate : endDate;
+    if (dateToShow) {
+      setCurrentMonth(new Date(dateToShow));
+    }
+  };
+
+  // 快捷选择最近7天
+  const selectLast7Days = () => {
+    const today = new Date();
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 7);
+    
+    const formatDate = (date: Date) => date.toISOString().split('T')[0];
+    onStartDateChange(formatDate(sevenDaysAgo));
+    onEndDateChange(formatDate(today));
+    onQuery();
+  };
+
+  const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+  const calendarDays = generateCalendar();
+
+  return (
+    <div className="flex items-center gap-3 flex-wrap">
+      {/* 日期范围显示 */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => openCalendar('start')}
+          className={`inline-flex items-center gap-2 px-4 py-2 text-sm border-2 ${colors.border} rounded-lg bg-white hover:shadow-md transition-all`}
+        >
+          <Calendar size={16} className={color === 'blue' ? 'text-blue-600' : 'text-green-600'} />
+          <span className="text-sm font-semibold text-gray-900">{formatDate(startDate)}</span>
+        </button>
+
+        <span className="text-gray-400 font-bold">→</span>
+
+        <button
+          onClick={() => openCalendar('end')}
+          className={`inline-flex items-center gap-2 px-4 py-2 text-sm border-2 ${colors.border} rounded-lg bg-white hover:shadow-md transition-all`}
+        >
+          <Calendar size={16} className={color === 'blue' ? 'text-blue-600' : 'text-green-600'} />
+          <span className="text-sm font-semibold text-gray-900">{formatDate(endDate)}</span>
+        </button>
+      </div>
+
+      {/* 日历弹窗 */}
+      {showCalendar && (
+        <div ref={calendarRef} className="absolute z-50 mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-2xl p-4 w-80">
+          {/* 头部 */}
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={prevMonth} className="p-1 hover:bg-gray-100 rounded">
+              <ChevronLeft size={20} className="text-gray-900" />
+            </button>
+            <div className="text-lg font-bold text-gray-900">
+              {currentMonth.getFullYear()}年{currentMonth.getMonth() + 1}月
+            </div>
+            <button onClick={nextMonth} className="p-1 hover:bg-gray-100 rounded">
+              <ChevronRight size={20} className="text-gray-900" />
+            </button>
+          </div>
+
+          {/* 提示 */}
+          <div className="text-sm text-gray-700 font-medium mb-3">
+            {selectingType === 'start' ? '选择开始日期' : '选择结束日期'}
+          </div>
+
+          {/* 星期标题 */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {weekDays.map(day => (
+              <div key={day} className="text-center text-xs font-semibold text-gray-700 py-1">
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* 日期网格 */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((day, index) => (
+              <div key={index}>
+                {day ? (
+                  <button
+                    onClick={() => handleDateClick(day)}
+                    className={`w-full aspect-square flex items-center justify-center text-sm font-medium rounded-lg transition-all
+                      ${isDateSelected(day) ? colors.selected : 
+                        isDateInRange(day) ? 'bg-gray-100 text-gray-900' : 
+                        `${colors.hover} text-gray-900`}
+                    `}
+                  >
+                    {day}
+                  </button>
+                ) : (
+                  <div className="w-full aspect-square" />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* 当前选择 */}
+          <div className="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-800">
+            <div className="font-medium">开始: {formatFullDate(startDate)}</div>
+            <div className="font-medium">结束: {formatFullDate(endDate)}</div>
+          </div>
+        </div>
+      )}
+      
+      {/* 查询按钮 */}
+      <button
+        onClick={onQuery}
+        className={`px-6 py-2 ${colors.button} text-white rounded-lg transition-all text-sm font-semibold shadow-md hover:shadow-lg`}
+      >
+        查询数据
+      </button>
+
+      {/* 最近7天按钮 */}
+      <button
+        onClick={selectLast7Days}
+        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-all text-sm font-semibold shadow-md hover:shadow-lg"
+      >
+        最近7天
+      </button>
+
+
+    </div>
+  );
+}
