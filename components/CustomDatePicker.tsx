@@ -16,6 +16,7 @@ interface CustomDatePickerProps {
   maxDays?: number;
   color?: 'blue' | 'green';
   cacheKey?: string;
+  hideButtons?: boolean; // 隐藏查询和快捷按钮
 }
 
 export function CustomDatePicker({
@@ -26,7 +27,8 @@ export function CustomDatePicker({
   onQuery,
   maxDays = 30,
   color = 'blue',
-  cacheKey = 'dateRange'
+  cacheKey = 'dateRange',
+  hideButtons = false
 }: CustomDatePickerProps) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectingType, setSelectingType] = useState<'start' | 'end'>('start');
@@ -253,22 +255,25 @@ export function CustomDatePicker({
         </div>
       )}
       
-      {/* 查询按钮 */}
-      <button
-        onClick={onQuery}
-        className={`flex items-center gap-1.5 px-3 py-1.5 ${colors.button} text-white rounded hover:${color === 'blue' ? 'bg-blue-700' : 'bg-green-700'} transition text-sm`}
-      >
-        查询数据
-      </button>
+      {!hideButtons && (
+        <>
+          {/* 查询按钮 */}
+          <button
+            onClick={onQuery}
+            className={`flex items-center gap-1.5 px-3 py-1.5 ${colors.button} text-white rounded hover:${color === 'blue' ? 'bg-blue-700' : 'bg-green-700'} transition text-sm`}
+          >
+            查询数据
+          </button>
 
-      {/* 最近7天按钮 */}
-      <button
-        onClick={selectLast7Days}
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm"
-      >
-        最近7天
-      </button>
-
+          {/* 最近7天按钮 */}
+          <button
+            onClick={selectLast7Days}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm"
+          >
+            最近7天
+          </button>
+        </>
+      )}
 
     </div>
   );

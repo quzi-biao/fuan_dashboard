@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from 'react';
 import { LatestDataPanel } from '@/components/LatestDataPanel';
+import { PressurePanel } from '@/components/PressurePanel';
 import { FlowAnalysisTable } from '@/components/FlowAnalysisTable';
 import { EfficiencyAnalysisTable } from '@/components/EfficiencyAnalysisTable';
 import { FlowAnalysisCharts } from '@/components/FlowAnalysisCharts';
@@ -15,6 +16,8 @@ import { Download, BarChart3, Table } from 'lucide-react';
 
 export default function Home() {
   const [latestData, setLatestData] = useState<any>(null);
+  const [pressureData, setPressureData] = useState<any[]>([]);
+  const [pressureCollectTime, setPressureCollectTime] = useState<string>('');
   const [flowAnalysis, setFlowAnalysis] = useState<any[]>([]);
   const [efficiencyAnalysis, setEfficiencyAnalysis] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,24 +80,28 @@ export default function Home() {
       setLoading(true);
       setError(null);
 
-      // 并行加载三个接口的数据
-      const [latestRes, flowRes, efficiencyRes] = await Promise.all([
+      // 并行加载四个接口的数据
+      const [latestRes, pressureRes, flowRes, efficiencyRes] = await Promise.all([
         fetch('/api/latest'),
+        fetch('/api/pressure/latest'),
         fetch(`/api/flow-analysis?startDate=${flowStartDate}&endDate=${flowEndDate}`),
         fetch(`/api/efficiency-analysis?startDate=${efficiencyStartDate}&endDate=${efficiencyEndDate}`)
       ]);
 
-      if (!latestRes.ok || !flowRes.ok || !efficiencyRes.ok) {
+      if (!latestRes.ok || !pressureRes.ok || !flowRes.ok || !efficiencyRes.ok) {
         throw new Error('数据加载失败');
       }
 
-      const [latest, flow, efficiency] = await Promise.all([
+      const [latest, pressure, flow, efficiency] = await Promise.all([
         latestRes.json(),
+        pressureRes.json(),
         flowRes.json(),
         efficiencyRes.json()
       ]);
 
       setLatestData(latest.data);
+      setPressureData(pressure.data);
+      setPressureCollectTime(pressure.collect_time);
       setFlowAnalysis(flow.data);
       setEfficiencyAnalysis(efficiency.data);
     } catch (err) {
@@ -226,6 +233,11 @@ export default function Home() {
 
       {/* 最新数据面板 */}
       <LatestDataPanel data={latestData} />
+
+      {/* 末端压力数据面板 */}
+      <div className="mt-6">
+        <PressurePanel data={pressureData} collectTime={pressureCollectTime} />
+      </div>
 
       {/* 数据分析表格 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
