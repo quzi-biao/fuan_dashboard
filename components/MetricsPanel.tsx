@@ -59,15 +59,15 @@ export function MetricsPanel({ data, collectTime }: MetricsPanelProps) {
     <>
       <div className="bg-white rounded-lg shadow p-6 relative">
         {/* 左右布局 */}
-        <div className="flex gap-6 pb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
           {/* 岩湖水厂 */}
-          <div style={{ width: `${yanhuPercent}%` }} className="relative">
+          <div className="relative">
             <h3 className="text-lg font-medium text-gray-800 mb-3 flex items-center gap-2">
               <span className="w-1 h-5 bg-blue-600 rounded"></span>
               {data.yanhu.label}
             </h3>
             
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
               {data.yanhu.metrics.map((metric) => (
                 <button
                   key={metric.id}
@@ -104,12 +104,12 @@ export function MetricsPanel({ data, collectTime }: MetricsPanelProps) {
           </div>
           
           {/* 城东水厂 */}
-          <div style={{ width: `${chengdongPercent}%` }}>
+          <div className="relative">
             <h3 className="text-lg font-medium text-gray-800 mb-3 flex items-center gap-2">
               <span className="w-1 h-5 bg-green-600 rounded"></span>
               {data.chengdong.label}
             </h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {data.chengdong.metrics.map((metric) => (
                 <button
                   key={metric.id}

@@ -12,7 +12,7 @@ import { EfficiencyAnalysisTable } from '@/components/EfficiencyAnalysisTable';
 import { FlowAnalysisCharts } from '@/components/FlowAnalysisCharts';
 import { EfficiencyAnalysisCharts } from '@/components/EfficiencyAnalysisCharts';
 import { CustomDatePicker } from '@/components/CustomDatePicker';
-import { Download, BarChart3, Table } from 'lucide-react';
+import { Download, BarChart3, Table, Search } from 'lucide-react';
 
 export default function Home() {
   const [latestData, setLatestData] = useState<any>(null);
@@ -227,7 +227,7 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 p-6">
       {/* 标题 */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">福安数据分析仪表板</h1>
+        <h1 className="text-3xl font-bold text-gray-900">福安数据仪表盘</h1>
         <p className="text-gray-600 mt-2">实时监控水厂运行数据与能效分析</p>
       </div>
 
@@ -265,19 +265,21 @@ export default function Home() {
                 <button
                   onClick={() => setFlowViewMode(flowViewMode === 'table' ? 'chart' : 'table')}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm"
+                  title={flowViewMode === 'table' ? '图表' : '表格'}
                 >
                   {flowViewMode === 'table' ? (
-                    <><BarChart3 size={14} /> 图表</>
+                    <><BarChart3 size={14} /> <span className="hidden sm:inline">图表</span></>
                   ) : (
-                    <><Table size={14} /> 表格</>
+                    <><Table size={14} /> <span className="hidden sm:inline">表格</span></>
                   )}
                 </button>
                 <button
                   onClick={exportFlowReport}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm"
+                  title="导出报表"
                 >
                   <Download size={14} />
-                  导出报表
+                  <span className="hidden sm:inline">导出报表</span>
                 </button>
               </div>
             </div>
@@ -310,19 +312,21 @@ export default function Home() {
                 <button
                   onClick={() => setEfficiencyViewMode(efficiencyViewMode === 'table' ? 'chart' : 'table')}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm"
+                  title={efficiencyViewMode === 'table' ? '图表' : '表格'}
                 >
                   {efficiencyViewMode === 'table' ? (
-                    <><BarChart3 size={14} /> 图表</>
+                    <><BarChart3 size={14} /> <span className="hidden sm:inline">图表</span></>
                   ) : (
-                    <><Table size={14} /> 表格</>
+                    <><Table size={14} /> <span className="hidden sm:inline">表格</span></>
                   )}
                 </button>
                 <button
                   onClick={exportEfficiencyReport}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm"
+                  title="导出报表"
                 >
                   <Download size={14} />
-                  导出报表
+                  <span className="hidden sm:inline">导出报表</span>
                 </button>
               </div>
             </div>

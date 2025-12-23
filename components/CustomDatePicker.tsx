@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Search, CalendarDays } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 interface CustomDatePickerProps {
@@ -59,11 +59,18 @@ export function CustomDatePicker({
 
   const colors = colorClasses[color];
 
-  // 格式化日期显示
+  // 格式化日期显示（完整版）
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '选择日期';
     const date = new Date(dateStr);
     return `${date.getMonth() + 1}月${date.getDate()}日`;
+  };
+
+  // 格式化日期显示（简短版，用于小屏幕）
+  const formatDateShort = (dateStr: string) => {
+    if (!dateStr) return '日期';
+    const date = new Date(dateStr);
+    return `${date.getMonth() + 1}/${date.getDate()}`;
   };
 
   const formatFullDate = (dateStr: string) => {
@@ -175,23 +182,25 @@ export function CustomDatePicker({
   return (
     <div className="flex items-center gap-3 flex-wrap">
       {/* 日期范围显示 */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         <button
           onClick={() => openCalendar('start')}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition text-sm"
+          className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition text-sm"
+          title={`开始: ${formatDate(startDate)}`}
         >
           <Calendar size={14} />
-          <span>{formatDate(startDate)}</span>
+          <span className="hidden md:inline">{formatDate(startDate)}</span>
         </button>
 
-        <span className="text-gray-400">→</span>
+        <span className="text-gray-400 text-xs">→</span>
 
         <button
           onClick={() => openCalendar('end')}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition text-sm"
+          className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition text-sm"
+          title={`结束: ${formatDate(endDate)}`}
         >
           <Calendar size={14} />
-          <span>{formatDate(endDate)}</span>
+          <span className="hidden md:inline">{formatDate(endDate)}</span>
         </button>
       </div>
 
@@ -261,16 +270,20 @@ export function CustomDatePicker({
           <button
             onClick={onQuery}
             className={`flex items-center gap-1.5 px-3 py-1.5 ${colors.button} text-white rounded hover:${color === 'blue' ? 'bg-blue-700' : 'bg-green-700'} transition text-sm`}
+            title="查询数据"
           >
-            查询数据
+            <Search size={14} />
+            <span className="hidden sm:inline">查询数据</span>
           </button>
 
           {/* 最近7天按钮 */}
           <button
             onClick={selectLast7Days}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm"
+            title="最近7天"
           >
-            最近7天
+            <CalendarDays size={14} />
+            <span className="hidden sm:inline">最近7天</span>
           </button>
         </>
       )}
