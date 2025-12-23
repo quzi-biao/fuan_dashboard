@@ -74,9 +74,26 @@ build_image() {
 # 启动服务
 start_service() {
     print_message "启动 ${PROJECT_NAME} 服务..."
-    $DOCKER_COMPOSE up -d
-    print_message "服务启动成功"
-    print_message "访问地址: http://localhost:5656"
+    
+    # 先尝试拉取基础镜像
+    print_message "检查基础镜像..."
+    docker pull node:20-alpine || print_warning "无法拉取基础镜像，将使用本地缓存"
+    
+    # 启动服务，添加错误处理
+    if $DOCKER_COMPOSE up -d; then
+        print_message "服务启动成功"
+        print_message "访问地址: http://localhost:5656"
+        
+        # 等待几秒后检查状态
+        sleep 3
+        print_message "检查容器状态..."
+        $DOCKER_COMPOSE ps
+    else
+        print_error "服务启动失败"
+        print_message "查看详细日志:"
+        $DOCKER_COMPOSE logs --tail=50
+        exit 1
+    fi
 }
 
 # 停止服务
@@ -103,6 +120,38 @@ view_logs() {
 check_status() {
     print_message "服务状态:"
     $DOCKER_COMPOSE ps
+}
+
+# 诊断环境
+diagnose() {
+    print_message "=== 环境诊断 ==="
+    echo ""
+    
+    print_message "Docker 版本:"
+    docker --version
+    echo ""
+    
+    print_message "Docker Compose 版本:"
+    $DOCKER_COMPOSE version
+    echo ""
+    
+    print_message "Docker 运行状态:"
+    docker info | grep -E "Server Version|Operating System|Total Memory|CPUs"
+    echo ""
+    
+    print_message "现有容器:"
+    docker ps -a
+    echo ""
+    
+    print_message "现有镜像:"
+    docker images | grep -E "fuan|node"
+    echo ""
+    
+    if [ -f .env ]; then
+        print_message "环境变量文件存在: ✓"
+    else
+        print_warning "环境变量文件不存在: ✗"
+    fi
 }
 
 # 清理资源
@@ -132,6 +181,7 @@ show_help() {
     build       重新构建镜像
     logs        查看日志
     status      查看服务状态
+    diagnose    诊断环境
     cleanup     清理所有资源
     help        显示帮助信息
 
@@ -167,6 +217,10 @@ main() {
             ;;
         status)
             check_status
+            ;;
+        diagnose)
+            check_docker
+            diagnose
             ;;
         cleanup)
             cleanup
