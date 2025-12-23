@@ -71,7 +71,7 @@ start_service() {
     print_message "启动 ${PROJECT_NAME} 服务..."
     docker-compose up -d
     print_message "服务启动成功"
-    print_message "访问地址: http://localhost:3000"
+    print_message "访问地址: http://localhost:5656"
 }
 
 # 停止服务

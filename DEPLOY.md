@@ -46,7 +46,7 @@ chmod +x deploy.sh
 ./deploy.sh start
 ```
 
-服务启动后，访问 http://localhost:3000
+服务启动后，访问 http://localhost:5656
 
 ## 📝 部署脚本命令
 
@@ -91,7 +91,7 @@ docker-compose down
 
 ## 🌐 端口配置
 
-默认端口为 3000，如需修改，编辑 `docker-compose.yml`：
+默认端口为 5656，如需修改，编辑 `docker-compose.yml`：
 
 ```yaml
 ports:
