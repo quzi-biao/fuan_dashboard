@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { AnalysisConfig } from '@/components/correlation/AnalysisConfig';
 import { RegressionResults } from '@/components/correlation/RegressionResults';
@@ -234,6 +234,20 @@ export default function CorrelationAnalysisPage() {
             onRunAnalysis={runAnalysis}
             getFieldLabel={getFieldLabel}
           />
+          
+          {/* 流量分组回归分析入口 */}
+          <div className="mt-6">
+            <Link
+              href="/correlation/flow-group"
+              className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 px-4 rounded-lg hover:from-green-700 hover:to-blue-700 transition-all flex items-center justify-center gap-2 font-medium shadow-lg"
+            >
+              <TrendingUp className="w-5 h-5" />
+              <span>流量分组回归分析</span>
+            </Link>
+            <p className="text-xs text-gray-600 mt-2 text-center">
+              按城东+岩湖总流量分组分析
+            </p>
+          </div>
         </div>
 
         {/* 结果展示 - 右侧，较宽 */}
