@@ -59,6 +59,7 @@ export function FlowGroupAnalysis() {
   const [polynomialDegree, setPolynomialDegree] = useState(2);
   const [hiddenLayers, setHiddenLayers] = useState('100,50');
   const [interventionDate, setInterventionDate] = useState('');
+  const [timeGranularity, setTimeGranularity] = useState<'minute' | 'hour' | 'day'>('minute');
   const [availableFields, setAvailableFields] = useState<string[]>([]);
   
   // 分析结果
@@ -156,6 +157,7 @@ export function FlowGroupAnalysis() {
         x_fields: xFields.join(','),
         y_field: yField,
         analysis_type: analysisType,
+        time_granularity: timeGranularity,
       });
 
       if (analysisType === 'polynomial') {
@@ -223,6 +225,7 @@ export function FlowGroupAnalysis() {
                   endDate={endDate}
                   availableFields={availableFields}
                   loading={analyzing}
+                  timeGranularity={timeGranularity}
                   onXFieldsChange={setXFields}
                   onYFieldChange={setYField}
                   onAnalysisTypeChange={setAnalysisType}
@@ -231,6 +234,7 @@ export function FlowGroupAnalysis() {
                   onInterventionDateChange={setInterventionDate}
                   onStartDateChange={setStartDate}
                   onEndDateChange={setEndDate}
+                  onTimeGranularityChange={setTimeGranularity}
                   onRunAnalysis={analyzeGroup}
                   getFieldLabel={getFieldLabel}
                 />
@@ -295,14 +299,14 @@ export function FlowGroupAnalysis() {
             {/* 分析结果 */}
             {analysisResult && (
               <div>
-                <div className="bg-white rounded-lg shadow p-6 mb-4">
+                {/* <div className="bg-white rounded-lg shadow p-6 mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     分组 {analysisResult.group_id} 的分析结果
                   </h3>
                   <p className="text-sm text-gray-600">
                     流量范围: {analysisResult.group_range} | 样本数: {analysisResult.sample_count}
                   </p>
-                </div>
+                </div> */}
                 <RegressionResults
                   result={analysisResult}
                   xFields={xFields}

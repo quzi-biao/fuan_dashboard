@@ -41,6 +41,7 @@ export default function CorrelationAnalysisPage() {
   const [polynomialDegree, setPolynomialDegree] = useState(2);
   const [hiddenLayers, setHiddenLayers] = useState('100,50');
   const [interventionDate, setInterventionDate] = useState('');
+  const [timeGranularity, setTimeGranularity] = useState<'minute' | 'hour' | 'day'>('minute');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
@@ -105,6 +106,7 @@ export default function CorrelationAnalysisPage() {
         start_date: startDate,
         end_date: endDate,
         analysis_type: analysisType,
+        time_granularity: timeGranularity,
       });
 
       if (analysisType === 'polynomial') {
@@ -175,6 +177,7 @@ export default function CorrelationAnalysisPage() {
             endDate={endDate}
             availableFields={availableFields}
             loading={loading}
+            timeGranularity={timeGranularity}
             onXFieldsChange={setXFields}
             onYFieldChange={setYField}
             onAnalysisTypeChange={setAnalysisType}
@@ -183,6 +186,7 @@ export default function CorrelationAnalysisPage() {
             onInterventionDateChange={setInterventionDate}
             onStartDateChange={setStartDate}
             onEndDateChange={setEndDate}
+            onTimeGranularityChange={setTimeGranularity}
             onRunAnalysis={runAnalysis}
             getFieldLabel={getFieldLabel}
           />

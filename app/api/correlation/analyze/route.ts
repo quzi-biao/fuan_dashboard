@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     const analysisType = searchParams.get('analysis_type') || 'polynomial';
     const degree = parseInt(searchParams.get('degree') || '2');
     const hiddenLayers = searchParams.get('hidden_layers') || '100,50';
+    const timeGranularity = searchParams.get('time_granularity') || 'minute';
 
     if (!xFieldsStr || !yField || !startDate || !endDate) {
       return NextResponse.json(
@@ -42,18 +43,48 @@ export async function GET(request: NextRequest) {
     // 连接数据库
     connection = await mysql.createConnection(DB_CONFIG);
 
-    // 构建查询
+    // 根据时间粒度构建不同的查询
     const allFields = [...xFields, yField];
     const whereConditions = allFields.map(f => `${f} > 0`).join(' AND ');
     
-    const query = `
-      SELECT ${allFields.join(', ')}
-      FROM fuan_data
-      WHERE ${whereConditions}
-        AND collect_time >= ?
-        AND collect_time <= ?
-      ORDER BY collect_time
-    `;
+    let query: string;
+    if (timeGranularity === 'hour') {
+      // 按小时聚合，计算均值
+      query = `
+        SELECT 
+          DATE_FORMAT(collect_time, '%Y-%m-%d %H:00:00') as collect_time,
+          ${allFields.map(f => `AVG(${f}) as ${f}`).join(', ')}
+        FROM fuan_data
+        WHERE ${whereConditions}
+          AND collect_time >= ?
+          AND collect_time <= ?
+        GROUP BY DATE_FORMAT(collect_time, '%Y-%m-%d %H:00:00')
+        ORDER BY collect_time
+      `;
+    } else if (timeGranularity === 'day') {
+      // 按日聚合，计算均值
+      query = `
+        SELECT 
+          DATE_FORMAT(collect_time, '%Y-%m-%d 00:00:00') as collect_time,
+          ${allFields.map(f => `AVG(${f}) as ${f}`).join(', ')}
+        FROM fuan_data
+        WHERE ${whereConditions}
+          AND collect_time >= ?
+          AND collect_time <= ?
+        GROUP BY DATE_FORMAT(collect_time, '%Y-%m-%d')
+        ORDER BY collect_time
+      `;
+    } else {
+      // 按分钟，原始数据
+      query = `
+        SELECT collect_time, ${allFields.join(', ')}
+        FROM fuan_data
+        WHERE ${whereConditions}
+          AND collect_time >= ?
+          AND collect_time <= ?
+        ORDER BY collect_time
+      `;
+    }
 
     const [rows] = await connection.query<any[]>(query, [startDate, endDate]);
 

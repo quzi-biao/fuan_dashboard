@@ -66,6 +66,7 @@ interface AnalysisConfigProps {
   endDate: string;
   availableFields: string[];
   loading: boolean;
+  timeGranularity?: 'minute' | 'hour' | 'day';
   onXFieldsChange: (fields: string[]) => void;
   onYFieldChange: (field: string) => void;
   onAnalysisTypeChange: (type: 'polynomial' | 'neural_network' | 'did') => void;
@@ -74,6 +75,7 @@ interface AnalysisConfigProps {
   onInterventionDateChange: (date: string) => void;
   onStartDateChange: (date: string) => void;
   onEndDateChange: (date: string) => void;
+  onTimeGranularityChange?: (granularity: 'minute' | 'hour' | 'day') => void;
   onRunAnalysis: () => void;
   getFieldLabel: (field: string) => string;
 }
@@ -89,6 +91,7 @@ export function AnalysisConfig({
   endDate,
   availableFields,
   loading,
+  timeGranularity = 'minute',
   onXFieldsChange,
   onYFieldChange,
   onAnalysisTypeChange,
@@ -97,6 +100,7 @@ export function AnalysisConfig({
   onInterventionDateChange,
   onStartDateChange,
   onEndDateChange,
+  onTimeGranularityChange,
   onRunAnalysis,
   getFieldLabel
 }: AnalysisConfigProps) {
@@ -166,6 +170,47 @@ export function AnalysisConfig({
           placeholder="选择字段"
         />
       </div>
+
+      {/* 时间粒度选择 */}
+      {onTimeGranularityChange && (
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            时间粒度
+          </label>
+          <div className="flex flex-col gap-2">
+            <label className="flex items-center text-gray-900">
+              <input
+                type="radio"
+                value="minute"
+                checked={timeGranularity === 'minute'}
+                onChange={(e) => onTimeGranularityChange(e.target.value as 'minute')}
+                className="mr-2"
+              />
+              按分钟（原始数据）
+            </label>
+            <label className="flex items-center text-gray-900">
+              <input
+                type="radio"
+                value="hour"
+                checked={timeGranularity === 'hour'}
+                onChange={(e) => onTimeGranularityChange(e.target.value as 'hour')}
+                className="mr-2"
+              />
+              按小时（小时均值）
+            </label>
+            <label className="flex items-center text-gray-900">
+              <input
+                type="radio"
+                value="day"
+                checked={timeGranularity === 'day'}
+                onChange={(e) => onTimeGranularityChange(e.target.value as 'day')}
+                className="mr-2"
+              />
+              按日（日均值）
+            </label>
+          </div>
+        </div>
+      )}
 
       {/* 分析类型 */}
       <div className="mb-4">

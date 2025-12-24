@@ -3,6 +3,8 @@
  */
 'use client';
 
+import { useState } from 'react';
+import { HelpCircle } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -39,112 +41,124 @@ interface RegressionResultsProps {
 }
 
 export function RegressionResults({ result, xFields, yField, getFieldLabel }: RegressionResultsProps) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  // 格式化坐标轴数值
+  const formatAxisValue = (value: number) => {
+    if (Math.abs(value) >= 100) {
+      return value.toFixed(1);
+    }
+    return value.toFixed(4);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-gray-900">分析结果</h2>
       </div>
 
-      {/* 统计指标 */}
+      {/* 回归方程和统计指标 - 放在同一行 */}
       {result.r2_train !== undefined && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
-              <div className="text-sm text-gray-700 font-medium">训练集 R²</div>
-              <div className="text-2xl font-bold text-blue-700">
-                {result.r2_train.toFixed(4)}
-              </div>
-              <div className="text-xs text-gray-600 mt-1">
-                {result.r2_train > 0.9 ? '✓ 优秀' : result.r2_train > 0.7 ? '✓ 良好' : result.r2_train > 0.5 ? '△ 一般' : '✗ 较差'}
-              </div>
-            </div>
-            <div className="p-4 bg-green-50 rounded-lg border-2 border-green-200">
-              <div className="text-sm text-gray-700 font-medium">测试集 R²</div>
-              <div className="text-2xl font-bold text-green-700">
-                {result.r2_test?.toFixed(4)}
-              </div>
-              <div className="text-xs text-gray-600 mt-1">
-                {(result.r2_test ?? 0) > 0.9 ? '✓ 优秀' : (result.r2_test ?? 0) > 0.7 ? '✓ 良好' : (result.r2_test ?? 0) > 0.5 ? '△ 一般' : '✗ 较差'}
-              </div>
-            </div>
-            <div className="p-4 bg-orange-50 rounded-lg">
-              <div className="text-sm text-gray-700 font-medium">训练集 MSE</div>
-              <div className="text-2xl font-bold text-orange-700">
-                {result.mse_train?.toFixed(4)}
-              </div>
-              <div className="text-xs text-gray-600 mt-1">越小越好</div>
-            </div>
-            <div className="p-4 bg-purple-50 rounded-lg">
-              <div className="text-sm text-gray-700 font-medium">测试集 MSE</div>
-              <div className="text-2xl font-bold text-purple-700">
-                {result.mse_test?.toFixed(4)}
-              </div>
-              <div className="text-xs text-gray-600 mt-1">越小越好</div>
-            </div>
-          </div>
-          
-          {/* R²和MSE说明 */}
-          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
-            <div className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-              <span className="text-blue-600">📊</span>
-              <span>评价指标说明</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-700">
-              <div>
-                <div className="font-semibold text-blue-700 mb-1">R² (决定系数)</div>
-                <ul className="space-y-1 list-disc list-inside">
-                  <li><strong>范围</strong>: 0 ~ 1（越接近1越好）</li>
-                  <li><strong>含义</strong>: 模型解释了多少数据变异</li>
-                  <li><strong>评价</strong>:
-                    <div className="ml-4 mt-1">
-                      <div>• R² &gt; 0.9: 优秀拟合</div>
-                      <div>• 0.7 &lt; R² ≤ 0.9: 良好拟合</div>
-                      <div>• 0.5 &lt; R² ≤ 0.7: 一般拟合</div>
-                      <div>• R² ≤ 0.5: 较差拟合</div>
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+            <div className="flex items-start justify-between gap-6">
+              {/* 左侧：回归方程 */}
+              {result.equation && (
+                <div className="flex-shrink-0" style={{ width: '60%' }}>
+                  <div className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+                    <span className="text-blue-600">📐</span>
+                    <span>回归方程</span>
+                  </div>
+                  <div className="font-mono text-sm text-gray-900 bg-white p-3 rounded border border-blue-100">
+                    {result.equation}
+                  </div>
+                  <div className="mt-2 text-xs text-gray-600">
+                    <div className="font-medium mb-1">变量说明：</div>
+                    <div className="space-y-0.5">
+                      <div>• y = {getFieldLabel(yField)}</div>
+                      {xFields.map((field, idx) => (
+                        <div key={idx}>• x{idx + 1} = {getFieldLabel(field)}</div>
+                      ))}
                     </div>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <div className="font-semibold text-orange-700 mb-1">MSE (均方误差)</div>
-                <ul className="space-y-1 list-disc list-inside">
-                  <li><strong>范围</strong>: 0 ~ ∞（越接近0越好）</li>
-                  <li><strong>含义</strong>: 预测值与实际值的平均偏差</li>
-                  <li><strong>特点</strong>: 对大误差更敏感</li>
-                  <li><strong>注意</strong>: 训练集和测试集MSE不应相差太大，否则可能过拟合</li>
-                </ul>
+                  </div>
+                </div>
+              )}
+              
+              {/* 右侧：统计指标 */}
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-medium text-gray-900">评价指标</span>
+                  <div className="relative">
+                    <button
+                      onMouseEnter={() => setShowTooltip(true)}
+                      onMouseLeave={() => setShowTooltip(false)}
+                      className="p-1 hover:bg-blue-100 rounded-full transition-colors"
+                    >
+                      <HelpCircle className="w-4 h-4 text-blue-600" />
+                    </button>
+                    {showTooltip && (
+                      <div className="absolute left-0 top-full mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 p-4 z-50">
+                        <div className="grid grid-cols-1 gap-3 text-xs text-gray-700">
+                          <div>
+                            <div className="font-semibold text-blue-700 mb-1">R² (决定系数)</div>
+                            <ul className="space-y-0.5 list-disc list-inside">
+                              <li><strong>范围</strong>: 0 ~ 1（越接近1越好）</li>
+                              <li><strong>含义</strong>: 模型解释了多少数据变异</li>
+                              <li><strong>评价</strong>: R² &gt; 0.9 优秀 | 0.7-0.9 良好 | 0.5-0.7 一般 | &lt; 0.5 较差</li>
+                            </ul>
+                          </div>
+                          <div>
+                            <div className="font-semibold text-orange-700 mb-1">MSE (均方误差)</div>
+                            <ul className="space-y-0.5 list-disc list-inside">
+                              <li><strong>范围</strong>: 0 ~ ∞（越接近0越好）</li>
+                              <li><strong>含义</strong>: 预测值与实际值的平均偏差</li>
+                              <li><strong>注意</strong>: 训练集和测试集MSE不应相差太大</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2 bg-blue-50 rounded border border-blue-200">
+                    <div className="text-xs text-gray-700 font-medium">训练集 R²</div>
+                    <div className="text-lg font-bold text-blue-700">
+                      {result.r2_train.toFixed(4)}
+                    </div>
+                  </div>
+                  <div className="p-2 bg-green-50 rounded border border-green-200">
+                    <div className="text-xs text-gray-700 font-medium">测试集 R²</div>
+                    <div className="text-lg font-bold text-green-700">
+                      {result.r2_test?.toFixed(4)}
+                    </div>
+                  </div>
+                  <div className="p-2 bg-orange-50 rounded">
+                    <div className="text-xs text-gray-700 font-medium">训练集 MSE</div>
+                    <div className="text-lg font-bold text-orange-700">
+                      {result.mse_train?.toFixed(4)}
+                    </div>
+                  </div>
+                  <div className="p-2 bg-purple-50 rounded">
+                    <div className="text-xs text-gray-700 font-medium">测试集 MSE</div>
+                    <div className="text-lg font-bold text-purple-700">
+                      {result.mse_test?.toFixed(4)}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
+            
+            {/* 过拟合警告 */}
             {result.r2_train - (result.r2_test ?? 0) > 0.1 && (
               <div className="mt-3 p-2 bg-yellow-50 border border-yellow-300 rounded text-xs text-yellow-800">
-                ⚠️ <strong>提示</strong>: 训练集和测试集R²差异较大 ({(result.r2_train - (result.r2_test ?? 0)).toFixed(3)})，可能存在过拟合。建议调整模型参数或增加数据量。
+                ⚠️ <strong>提示</strong>: 训练集和测试集R²差异较大 ({(result.r2_train - (result.r2_test ?? 0)).toFixed(3)})，可能存在过拟合。
               </div>
             )}
           </div>
         </>
       )}
 
-      {/* 回归方程 */}
-      {result.equation && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-200">
-          <div className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
-            <span className="text-blue-600">📐</span>
-            <span>回归方程</span>
-          </div>
-          <div className="font-mono text-base text-gray-900 bg-white p-3 rounded border border-blue-100">
-            {result.equation}
-          </div>
-          <div className="mt-3 text-xs text-gray-600">
-            <div className="font-medium mb-1">变量说明：</div>
-            <div className="space-y-1">
-              <div>• y = {getFieldLabel(yField)}</div>
-              {xFields.map((field, idx) => (
-                <div key={idx}>• x{idx + 1} = {getFieldLabel(field)}</div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 图表展示 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -164,11 +178,17 @@ export function RegressionResults({ result, xFields, yField, getFieldLabel }: Re
                   label={{ value: getFieldLabel(xFields[0]), position: 'insideBottom', offset: -15, fill: '#374151', fontSize: 14 }}
                   tick={{ fill: '#6b7280' }}
                   stroke="#9ca3af"
+                  domain={['dataMin', 'dataMax']}
+                  scale="auto"
+                  tickFormatter={formatAxisValue}
                 />
                 <YAxis 
                   label={{ value: getFieldLabel(yField), angle: -90, position: 'insideLeft', offset: -10, fill: '#374151', fontSize: 14 }}
                   tick={{ fill: '#6b7280' }}
                   stroke="#9ca3af"
+                  domain={['dataMin', 'dataMax']}
+                  scale="auto"
+                  tickFormatter={formatAxisValue}
                 />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px' }}
@@ -213,6 +233,9 @@ export function RegressionResults({ result, xFields, yField, getFieldLabel }: Re
                   label={{ value: '实际值', position: 'insideBottom', offset: -15, fill: '#374151', fontSize: 14 }}
                   tick={{ fill: '#6b7280' }}
                   stroke="#9ca3af"
+                  domain={['dataMin', 'dataMax']}
+                  scale="auto"
+                  tickFormatter={formatAxisValue}
                 />
                 <YAxis 
                   type="number" 
@@ -221,6 +244,9 @@ export function RegressionResults({ result, xFields, yField, getFieldLabel }: Re
                   label={{ value: '预测值', angle: -90, position: 'insideLeft', offset: -10, fill: '#374151', fontSize: 14 }}
                   tick={{ fill: '#6b7280' }}
                   stroke="#9ca3af"
+                  domain={['dataMin', 'dataMax']}
+                  scale="auto"
+                  tickFormatter={formatAxisValue}
                 />
                 <Tooltip 
                   cursor={{ strokeDasharray: '3 3' }}
@@ -256,6 +282,9 @@ export function RegressionResults({ result, xFields, yField, getFieldLabel }: Re
                   label={{ value: '预测值', position: 'insideBottom', offset: -15, fill: '#374151', fontSize: 14 }}
                   tick={{ fill: '#6b7280' }}
                   stroke="#9ca3af"
+                  domain={['dataMin', 'dataMax']}
+                  scale="auto"
+                  tickFormatter={formatAxisValue}
                 />
                 <YAxis 
                   type="number" 
@@ -264,6 +293,9 @@ export function RegressionResults({ result, xFields, yField, getFieldLabel }: Re
                   label={{ value: '残差', angle: -90, position: 'insideLeft', offset: -10, fill: '#374151', fontSize: 14 }}
                   tick={{ fill: '#6b7280' }}
                   stroke="#9ca3af"
+                  domain={['auto', 'auto']}
+                  scale="auto"
+                  tickFormatter={formatAxisValue}
                 />
                 <Tooltip 
                   cursor={{ strokeDasharray: '3 3' }}

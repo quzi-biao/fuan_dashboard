@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
     const analysisType = searchParams.get('analysis_type') || 'polynomial';
     const degree = parseInt(searchParams.get('degree') || '2');
     const hiddenLayers = searchParams.get('hidden_layers');
+    const timeGranularity = searchParams.get('time_granularity') || 'minute';
 
     if (!startDate || !endDate || !xFieldsStr || !yField) {
       return NextResponse.json(
@@ -44,20 +45,55 @@ export async function GET(request: NextRequest) {
 
     connection = await mysql.createConnection(DB_CONFIG);
 
-    // 查询所有需要的字段数据
+    // 根据时间粒度构建不同的查询
     const allFields = [...xFields, yField, 'i_1129', 'i_1076']; // 包含城东和岩湖累计流量
-    const query = `
-      SELECT 
-        collect_time,
-        ${allFields.join(', ')}
-      FROM fuan_data
-      WHERE collect_time >= ?
-        AND collect_time <= ?
-        AND i_1129 IS NOT NULL
-        AND i_1076 IS NOT NULL
-        ${allFields.map(f => `AND ${f} IS NOT NULL`).join(' ')}
-      ORDER BY collect_time
-    `;
+    
+    let query: string;
+    if (timeGranularity === 'hour') {
+      // 按小时聚合，计算均值
+      query = `
+        SELECT 
+          DATE_FORMAT(collect_time, '%Y-%m-%d %H:00:00') as collect_time,
+          ${allFields.map(f => `AVG(${f}) as ${f}`).join(', ')}
+        FROM fuan_data
+        WHERE collect_time >= ?
+          AND collect_time <= ?
+          AND i_1129 IS NOT NULL
+          AND i_1076 IS NOT NULL
+          ${allFields.map(f => `AND ${f} IS NOT NULL`).join(' ')}
+        GROUP BY DATE_FORMAT(collect_time, '%Y-%m-%d %H:00:00')
+        ORDER BY collect_time
+      `;
+    } else if (timeGranularity === 'day') {
+      // 按日聚合，计算均值
+      query = `
+        SELECT 
+          DATE_FORMAT(collect_time, '%Y-%m-%d 00:00:00') as collect_time,
+          ${allFields.map(f => `AVG(${f}) as ${f}`).join(', ')}
+        FROM fuan_data
+        WHERE collect_time >= ?
+          AND collect_time <= ?
+          AND i_1129 IS NOT NULL
+          AND i_1076 IS NOT NULL
+          ${allFields.map(f => `AND ${f} IS NOT NULL`).join(' ')}
+        GROUP BY DATE_FORMAT(collect_time, '%Y-%m-%d')
+        ORDER BY collect_time
+      `;
+    } else {
+      // 按分钟，原始数据
+      query = `
+        SELECT 
+          collect_time,
+          ${allFields.join(', ')}
+        FROM fuan_data
+        WHERE collect_time >= ?
+          AND collect_time <= ?
+          AND i_1129 IS NOT NULL
+          AND i_1076 IS NOT NULL
+          ${allFields.map(f => `AND ${f} IS NOT NULL`).join(' ')}
+        ORDER BY collect_time
+      `;
+    }
 
     const [rows] = await connection.query<any[]>(query, [startDate, endDate]);
 
@@ -166,6 +202,7 @@ export async function GET(request: NextRequest) {
       sample_count: cleanData.length,
       train_count: XTrain.length,
       test_count: XTest.length,
+      is_single_variable: xFields.length === 1,
     };
 
     if (analysisType === 'polynomial') {
@@ -208,6 +245,17 @@ export async function GET(request: NextRequest) {
       }
       result.equation = equation;
 
+      // 如果是单变量，返回分组内数据的时间序列用于绘制曲线
+      if (xFields.length === 1) {
+        // 使用分组内清洗后的数据重新训练，获取预测值
+        const groupPredictions = polynomialRegression(X, y, degree).predictions;
+        result.time_series_data = cleanData.map((row, idx) => ({
+          x: row[xFields[0]],
+          y_actual: row[yField],
+          y_predicted: groupPredictions[idx]
+        })).sort((a, b) => a.x - b.x);
+      }
+
     } else {
       // 神经网络回归
       const hiddenLayerSizes = hiddenLayers ? hiddenLayers.split(',').map((s: string) => parseInt(s.trim())) : [100, 50];
@@ -236,6 +284,16 @@ export async function GET(request: NextRequest) {
       });
 
       result.equation = `神经网络 [${nnResult.layers.join(' → ')}] (${nnResult.iterations} 次迭代)`;
+
+      // 如果是单变量，返回分组内数据的时间序列用于绘制曲线
+      if (xFields.length === 1) {
+        // 使用分组内清洗后的数据和神经网络预测值
+        result.time_series_data = cleanData.map((row, idx) => ({
+          x: row[xFields[0]],
+          y_actual: row[yField],
+          y_predicted: nnResult.predictions[idx]
+        })).sort((a, b) => a.x - b.x);
+      }
     }
 
     return NextResponse.json(result);
