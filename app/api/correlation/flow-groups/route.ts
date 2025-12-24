@@ -190,13 +190,6 @@ export async function GET(request: NextRequest) {
       }))
       .sort((a, b) => a.flow - b.flow);
 
-    console.log('Distribution summary:', {
-      totalFlowData: flowData.length,
-      uniqueFlows: distributionData.length,
-      sample: distributionData.slice(0, 5),
-      maxCount: Math.max(...distributionData.map(d => d.count))
-    });
-
     // 返回分组信息（不包含data_indices，节省内存）
     const result = {
       total_samples: flowData.length,
