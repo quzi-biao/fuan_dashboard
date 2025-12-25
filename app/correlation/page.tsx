@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { AnalysisConfig, getFieldLabel } from '@/components/correlation/AnalysisConfig';
 import { RegressionResults } from '@/components/correlation/RegressionResults';
 import { DIDResults } from '@/components/correlation/DIDResults';
+import { loadConfigFromCache, saveConfigToCache } from '@/lib/utils/configCache';
 
 interface AnalysisResult {
   type: string;
@@ -33,15 +34,19 @@ interface AnalysisResult {
   parallel_trend_test?: { p_value: number; passed: boolean };
 }
 
+const CACHE_KEY = 'correlationAnalysisConfig';
 
 export default function CorrelationAnalysisPage() {
-  const [xFields, setXFields] = useState<string[]>(['flow_out']);
-  const [yField, setYField] = useState('pressure_out');
-  const [analysisType, setAnalysisType] = useState<'polynomial' | 'neural_network' | 'did'>('polynomial');
-  const [polynomialDegree, setPolynomialDegree] = useState(2);
-  const [hiddenLayers, setHiddenLayers] = useState('100,50');
-  const [interventionDate, setInterventionDate] = useState('');
-  const [timeGranularity, setTimeGranularity] = useState<'minute' | 'hour' | 'day'>('minute');
+  // 从缓存加载初始配置
+  const cachedConfig = loadConfigFromCache(CACHE_KEY);
+  
+  const [xFields, setXFields] = useState<string[]>(cachedConfig?.xFields || ['flow_out']);
+  const [yField, setYField] = useState(cachedConfig?.yField || 'pressure_out');
+  const [analysisType, setAnalysisType] = useState<'polynomial' | 'exponential' | 'logarithmic' | 'neural_network' | 'did'>(cachedConfig?.analysisType || 'polynomial');
+  const [polynomialDegree, setPolynomialDegree] = useState(cachedConfig?.polynomialDegree || 2);
+  const [hiddenLayers, setHiddenLayers] = useState(cachedConfig?.hiddenLayers || '100,50');
+  const [interventionDate, setInterventionDate] = useState(cachedConfig?.interventionDate || '');
+  const [timeGranularity, setTimeGranularity] = useState<'minute' | 'hour' | 'day'>(cachedConfig?.timeGranularity || 'minute');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
@@ -77,6 +82,20 @@ export default function CorrelationAnalysisPage() {
     }
     fetchFields();
   }, []);
+
+  // 保存配置到缓存（当配置变化时）
+  useEffect(() => {
+    const config = {
+      xFields,
+      yField,
+      analysisType,
+      polynomialDegree,
+      hiddenLayers,
+      interventionDate,
+      timeGranularity,
+    };
+    saveConfigToCache(CACHE_KEY, config);
+  }, [xFields, yField, analysisType, polynomialDegree, hiddenLayers, interventionDate, timeGranularity]);
 
   // 执行分析
   const runAnalysis = async () => {

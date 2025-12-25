@@ -58,7 +58,7 @@ export function getFieldLabel(field: string): string {
 interface AnalysisConfigProps {
   xFields: string[];
   yField: string;
-  analysisType: 'polynomial' | 'neural_network' | 'did';
+  analysisType: 'polynomial' | 'exponential' | 'logarithmic' | 'neural_network' | 'did';
   polynomialDegree: number;
   hiddenLayers: string;
   interventionDate: string;
@@ -69,7 +69,7 @@ interface AnalysisConfigProps {
   timeGranularity?: 'minute' | 'hour' | 'day';
   onXFieldsChange: (fields: string[]) => void;
   onYFieldChange: (field: string) => void;
-  onAnalysisTypeChange: (type: 'polynomial' | 'neural_network' | 'did') => void;
+  onAnalysisTypeChange: (type: 'polynomial' | 'exponential' | 'logarithmic' | 'neural_network' | 'did') => void;
   onPolynomialDegreeChange: (degree: number) => void;
   onHiddenLayersChange: (layers: string) => void;
   onInterventionDateChange: (date: string) => void;
@@ -227,6 +227,26 @@ export function AnalysisConfig({
               className="mr-2"
             />
             多项式回归
+          </label>
+          <label className="flex items-center text-gray-900">
+            <input
+              type="radio"
+              value="exponential"
+              checked={analysisType === 'exponential'}
+              onChange={(e) => onAnalysisTypeChange(e.target.value as 'exponential')}
+              className="mr-2"
+            />
+            指数回归
+          </label>
+          <label className="flex items-center text-gray-900">
+            <input
+              type="radio"
+              value="logarithmic"
+              checked={analysisType === 'logarithmic'}
+              onChange={(e) => onAnalysisTypeChange(e.target.value as 'logarithmic')}
+              className="mr-2"
+            />
+            对数回归
           </label>
           <label className="flex items-center text-gray-900">
             <input

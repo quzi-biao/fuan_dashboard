@@ -4,7 +4,9 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
-import { polynomialRegression } from '@/lib/analysis/polynomialRegression';
+import { polynomialRegressionPython } from '@/lib/analysis/pythonRunner';
+import { exponentialRegression } from '@/lib/analysis/exponentialRegression';
+import { logarithmicRegression } from '@/lib/analysis/logarithmicRegression';
 import { trainNeuralNetwork } from '@/lib/analysis/neuralNetwork';
 import { removeOutliers } from '@/lib/analysis/dataUtils';
 
@@ -206,15 +208,15 @@ export async function GET(request: NextRequest) {
     };
 
     if (analysisType === 'polynomial') {
-      // 多项式回归
-      const trainResult = polynomialRegression(XTrain, yTrain, degree);
-      const testResult = polynomialRegression(XTest, yTest, degree);
+      // 多项式回归（使用Python）
+      const trainResult = await polynomialRegressionPython(XTrain, yTrain, degree);
+      const testResult = await polynomialRegressionPython(XTest, yTest, degree);
 
       result.r2_train = trainResult.r2;
       result.r2_test = testResult.r2;
-      result.mse_train = yTrain.reduce((sum, val, idx) => 
+      result.mse_train = trainResult.mse || yTrain.reduce((sum, val, idx) => 
         sum + Math.pow(val - trainResult.predictions[idx], 2), 0) / yTrain.length;
-      result.mse_test = yTest.reduce((sum, val, idx) => 
+      result.mse_test = testResult.mse || yTest.reduce((sum, val, idx) => 
         sum + Math.pow(val - testResult.predictions[idx], 2), 0) / yTest.length;
 
       result.scatter_data = yTest.map((actual, idx) => ({
@@ -222,7 +224,7 @@ export async function GET(request: NextRequest) {
         predicted: testResult.predictions[idx]
       }));
 
-      result.residuals_data = testResult.predictions.map((pred, idx) => ({
+      result.residuals_data = testResult.predictions.map((pred: number, idx: number) => ({
         predicted: pred,
         residual: yTest[idx] - pred
       }));
@@ -248,7 +250,93 @@ export async function GET(request: NextRequest) {
       // 如果是单变量，返回分组内数据的时间序列用于绘制曲线
       if (xFields.length === 1) {
         // 使用分组内清洗后的数据重新训练，获取预测值
-        const groupPredictions = polynomialRegression(X, y, degree).predictions;
+        const groupResult = await polynomialRegressionPython(X, y, degree);
+        result.time_series_data = cleanData.map((row, idx) => ({
+          x: row[xFields[0]],
+          y_actual: row[yField],
+          y_predicted: groupResult.predictions[idx]
+        })).sort((a, b) => a.x - b.x);
+      }
+
+    } else if (analysisType === 'exponential') {
+      // 指数回归
+      const trainResult = exponentialRegression(XTrain, yTrain);
+      const testResult = exponentialRegression(XTest, yTest);
+
+      result.r2_train = trainResult.r2;
+      result.r2_test = testResult.r2;
+      result.mse_train = yTrain.reduce((sum, val, idx) => 
+        sum + Math.pow(val - trainResult.predictions[idx], 2), 0) / yTrain.length;
+      result.mse_test = yTest.reduce((sum, val, idx) => 
+        sum + Math.pow(val - testResult.predictions[idx], 2), 0) / yTest.length;
+
+      result.scatter_data = yTest.map((actual, idx) => ({
+        actual,
+        predicted: testResult.predictions[idx]
+      }));
+
+      result.residuals_data = testResult.predictions.map((pred, idx) => ({
+        predicted: pred,
+        residual: yTest[idx] - pred
+      }));
+
+      // 生成方程: y = a * e^(b1*x1 + b2*x2 + ...)
+      const coeffs = trainResult.coefficients;
+      let equation = `y = ${coeffs[0].toFixed(4)} · e^(`;
+      const exponentParts: string[] = [];
+      for (let i = 0; i < xFields.length; i++) {
+        const coef = coeffs[i + 1];
+        const sign = coef >= 0 && i > 0 ? '+' : '';
+        exponentParts.push(`${sign}${coef.toFixed(4)}·${xFields[i]}`);
+      }
+      equation += exponentParts.join(' ') + ')';
+      result.equation = equation;
+
+      // 如果是单变量，返回分组内数据的时间序列用于绘制曲线
+      if (xFields.length === 1) {
+        const groupPredictions = exponentialRegression(X, y).predictions;
+        result.time_series_data = cleanData.map((row, idx) => ({
+          x: row[xFields[0]],
+          y_actual: row[yField],
+          y_predicted: groupPredictions[idx]
+        })).sort((a, b) => a.x - b.x);
+      }
+
+    } else if (analysisType === 'logarithmic') {
+      // 对数回归
+      const trainResult = logarithmicRegression(XTrain, yTrain);
+      const testResult = logarithmicRegression(XTest, yTest);
+
+      result.r2_train = trainResult.r2;
+      result.r2_test = testResult.r2;
+      result.mse_train = yTrain.reduce((sum, val, idx) => 
+        sum + Math.pow(val - trainResult.predictions[idx], 2), 0) / yTrain.length;
+      result.mse_test = yTest.reduce((sum, val, idx) => 
+        sum + Math.pow(val - testResult.predictions[idx], 2), 0) / yTest.length;
+
+      result.scatter_data = yTest.map((actual, idx) => ({
+        actual,
+        predicted: testResult.predictions[idx]
+      }));
+
+      result.residuals_data = testResult.predictions.map((pred, idx) => ({
+        predicted: pred,
+        residual: yTest[idx] - pred
+      }));
+
+      // 生成方程: y = a + b1*ln(x1) + b2*ln(x2) + ...
+      const coeffs = trainResult.coefficients;
+      let equation = `y = ${coeffs[0].toFixed(4)}`;
+      for (let i = 0; i < xFields.length; i++) {
+        const coef = coeffs[i + 1];
+        const sign = coef >= 0 ? '+' : '';
+        equation += ` ${sign}${coef.toFixed(4)}·ln(${xFields[i]})`;
+      }
+      result.equation = equation;
+
+      // 如果是单变量，返回分组内数据的时间序列用于绘制曲线
+      if (xFields.length === 1) {
+        const groupPredictions = logarithmicRegression(X, y).predictions;
         result.time_series_data = cleanData.map((row, idx) => ({
           x: row[xFields[0]],
           y_actual: row[yField],

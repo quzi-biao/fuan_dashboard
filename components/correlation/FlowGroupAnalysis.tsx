@@ -7,6 +7,7 @@ import { AnalysisConfig, getFieldLabel } from './AnalysisConfig';
 import { RegressionResults } from './RegressionResults';
 import { FlowDistribution } from './FlowDistribution';
 import { GroupingConfig } from './GroupingConfig';
+import { loadConfigFromCache, saveConfigToCache } from '@/lib/utils/configCache';
 
 interface FlowGroup {
   group_id: number;
@@ -39,9 +40,14 @@ interface GroupAnalysisResult {
 }
 
 
+const CACHE_KEY = 'flowGroupAnalysisConfig';
+
 export function FlowGroupAnalysis() {
+  // 从缓存加载初始配置
+  const cachedConfig = loadConfigFromCache(CACHE_KEY);
+  
   // 分组配置
-  const [groupCount, setGroupCount] = useState(10);
+  const [groupCount, setGroupCount] = useState(cachedConfig?.groupCount || 10);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
@@ -53,13 +59,13 @@ export function FlowGroupAnalysis() {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   
   // 分析配置
-  const [xFields, setXFields] = useState<string[]>([]);
-  const [yField, setYField] = useState('');
-  const [analysisType, setAnalysisType] = useState<'polynomial' | 'neural_network' | 'did'>('polynomial');
-  const [polynomialDegree, setPolynomialDegree] = useState(2);
-  const [hiddenLayers, setHiddenLayers] = useState('100,50');
-  const [interventionDate, setInterventionDate] = useState('');
-  const [timeGranularity, setTimeGranularity] = useState<'minute' | 'hour' | 'day'>('minute');
+  const [xFields, setXFields] = useState<string[]>(cachedConfig?.xFields || []);
+  const [yField, setYField] = useState(cachedConfig?.yField || '');
+  const [analysisType, setAnalysisType] = useState<'polynomial' | 'exponential' | 'logarithmic' | 'neural_network' | 'did'>(cachedConfig?.analysisType || 'polynomial');
+  const [polynomialDegree, setPolynomialDegree] = useState(cachedConfig?.polynomialDegree || 2);
+  const [hiddenLayers, setHiddenLayers] = useState(cachedConfig?.hiddenLayers || '100,50');
+  const [interventionDate, setInterventionDate] = useState(cachedConfig?.interventionDate || '');
+  const [timeGranularity, setTimeGranularity] = useState<'minute' | 'hour' | 'day'>(cachedConfig?.timeGranularity || 'minute');
   const [availableFields, setAvailableFields] = useState<string[]>([]);
   
   // 分析结果
@@ -94,6 +100,21 @@ export function FlowGroupAnalysis() {
     }
     fetchFields();
   }, []);
+
+  // 保存配置到缓存（当配置变化时）
+  useEffect(() => {
+    const config = {
+      groupCount,
+      xFields,
+      yField,
+      analysisType,
+      polynomialDegree,
+      hiddenLayers,
+      interventionDate,
+      timeGranularity,
+    };
+    saveConfigToCache(CACHE_KEY, config);
+  }, [groupCount, xFields, yField, analysisType, polynomialDegree, hiddenLayers, interventionDate, timeGranularity]);
 
   // 执行分组
   async function performGrouping() {
