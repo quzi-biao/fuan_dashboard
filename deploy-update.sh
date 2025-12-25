@@ -14,7 +14,7 @@ CONTAINER_NAME="fuan-dashboard"
 # 1. 停止并删除旧容器
 echo ""
 echo "📦 停止并删除旧容器..."
-docker-compose down
+docker compose down
 
 # 2. 删除旧镜像（可选，释放空间）
 echo ""
@@ -24,28 +24,28 @@ docker rmi ${IMAGE_NAME}:latest 2>/dev/null || echo "旧镜像不存在，跳过
 # 3. 重新构建镜像
 echo ""
 echo "🔨 重新构建镜像..."
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # 4. 启动新容器
 echo ""
 echo "🚀 启动新容器..."
-docker-compose up -d
+docker compose up -d
 
 # 5. 查看容器状态
 echo ""
 echo "📊 容器状态:"
-docker-compose ps
+docker compose ps
 
 # 6. 查看最近的日志
 echo ""
 echo "📋 最近的日志:"
-docker-compose logs --tail=50
+docker compose logs --tail=50
 
 echo ""
 echo "✅ 更新部署完成！"
 echo ""
 echo "🎯 下一步操作:"
-echo "  1. 查看实时日志: docker-compose logs -f"
-echo "  2. 查看容器状态: docker-compose ps"
-echo "  3. 进入容器: docker-compose exec fuan-dashboard sh"
-echo "  4. 停止服务: docker-compose down"
+echo "  1. 查看实时日志: docker compose logs -f"
+echo "  2. 查看容器状态: docker compose ps"
+echo "  3. 进入容器: docker compose exec fuan-dashboard sh"
+echo "  4. 停止服务: docker compose down"
