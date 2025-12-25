@@ -7,7 +7,15 @@ import {
   polynomialRegressionPython, 
   neuralNetworkRegressionPython,
   exponentialRegressionPython,
-  logarithmicRegressionPython 
+  logarithmicRegressionPython,
+  linearRegressionPython,
+  powerRegressionPython,
+  ridgeRegressionPython,
+  lassoRegressionPython,
+  elasticNetRegressionPython,
+  svrRegressionPython,
+  randomForestRegressionPython,
+  gradientBoostingRegressionPython
 } from '@/lib/analysis/pythonRunner';
 import { removeOutliers } from '@/lib/analysis/dataUtils';
 
@@ -396,6 +404,221 @@ export async function GET(request: NextRequest) {
         passed: parallelTrendPassed
       };
       
+    } else if (analysisType === 'linear') {
+      // 线性回归（使用Python）
+      const linearResult = await linearRegressionPython(X, y);
+
+      result.r2_train = linearResult.r2_train;
+      result.r2_test = linearResult.r2_test;
+      result.mse_train = linearResult.mse_train;
+      result.mse_test = linearResult.mse_test;
+      result.scatter_data = linearResult.scatter_data;
+      result.residuals_data = linearResult.residuals_data;
+
+      // 生成方程
+      const { intercept, coef } = linearResult.coefficients;
+      if (xFields.length === 1) {
+        const coefVal = typeof coef === 'number' ? coef : coef[0];
+        const sign = coefVal >= 0 ? '+' : '';
+        result.equation = `y = ${intercept.toFixed(4)} ${sign}${coefVal.toFixed(4)}·${xFields[0]}`;
+      } else {
+        const coefArray = typeof coef === 'number' ? [coef] : coef;
+        let equation = `y = ${intercept.toFixed(4)}`;
+        coefArray.forEach((c, i) => {
+          const sign = c >= 0 ? '+' : '';
+          equation += ` ${sign}${c.toFixed(4)}·${xFields[i]}`;
+        });
+        result.equation = equation;
+      }
+
+      if (xFields.length === 1) {
+        result.is_single_variable = true;
+        result.time_series_data = cleanData.map((row, idx) => ({
+          x: row[xFields[0]],
+          y_actual: row[yField],
+          y_predicted: linearResult.predictions[idx]
+        }));
+        result.time_series_data.sort((a: any, b: any) => a.x - b.x);
+      }
+
+    } else if (analysisType === 'power') {
+      // 幂函数回归（使用Python）
+      const powerResult = await powerRegressionPython(X, y);
+
+      result.r2_train = powerResult.r2_train;
+      result.r2_test = powerResult.r2_test;
+      result.mse_train = powerResult.mse_train;
+      result.mse_test = powerResult.mse_test;
+      result.scatter_data = powerResult.scatter_data;
+      result.residuals_data = powerResult.residuals_data;
+
+      // 生成方程: y = a * x^b
+      const { a, b } = powerResult.coefficients;
+      if (xFields.length === 1) {
+        const bVal = typeof b === 'number' ? b : b[0];
+        result.equation = `y = ${a.toFixed(4)} · ${xFields[0]}^${bVal.toFixed(4)}`;
+      } else {
+        const bArray = typeof b === 'number' ? [b] : b;
+        const terms = bArray.map((exp, i) => `${xFields[i]}^${exp.toFixed(4)}`);
+        result.equation = `y = ${a.toFixed(4)} · ${terms.join(' · ')}`;
+      }
+
+      if (xFields.length === 1) {
+        result.is_single_variable = true;
+        result.time_series_data = cleanData.map((row, idx) => ({
+          x: row[xFields[0]],
+          y_actual: row[yField],
+          y_predicted: powerResult.predictions[idx]
+        }));
+        result.time_series_data.sort((a: any, b: any) => a.x - b.x);
+      }
+
+    } else if (analysisType === 'ridge') {
+      // 岭回归（使用Python）
+      const ridgeResult = await ridgeRegressionPython(X, y);
+
+      result.r2_train = ridgeResult.r2_train;
+      result.r2_test = ridgeResult.r2_test;
+      result.mse_train = ridgeResult.mse_train;
+      result.mse_test = ridgeResult.mse_test;
+      result.scatter_data = ridgeResult.scatter_data;
+      result.residuals_data = ridgeResult.residuals_data;
+
+      const { intercept, coef, alpha } = ridgeResult.coefficients;
+      result.equation = `岭回归 (α=${alpha.toFixed(2)})`;
+
+      if (xFields.length === 1) {
+        result.is_single_variable = true;
+        result.time_series_data = cleanData.map((row, idx) => ({
+          x: row[xFields[0]],
+          y_actual: row[yField],
+          y_predicted: ridgeResult.predictions[idx]
+        }));
+        result.time_series_data.sort((a: any, b: any) => a.x - b.x);
+      }
+
+    } else if (analysisType === 'lasso') {
+      // Lasso回归（使用Python）
+      const lassoResult = await lassoRegressionPython(X, y);
+
+      result.r2_train = lassoResult.r2_train;
+      result.r2_test = lassoResult.r2_test;
+      result.mse_train = lassoResult.mse_train;
+      result.mse_test = lassoResult.mse_test;
+      result.scatter_data = lassoResult.scatter_data;
+      result.residuals_data = lassoResult.residuals_data;
+
+      const { alpha, non_zero_features, total_features } = lassoResult.coefficients;
+      result.equation = `Lasso回归 (α=${alpha.toFixed(2)}, 选中${non_zero_features}/${total_features}特征)`;
+
+      if (xFields.length === 1) {
+        result.is_single_variable = true;
+        result.time_series_data = cleanData.map((row, idx) => ({
+          x: row[xFields[0]],
+          y_actual: row[yField],
+          y_predicted: lassoResult.predictions[idx]
+        }));
+        result.time_series_data.sort((a: any, b: any) => a.x - b.x);
+      }
+
+    } else if (analysisType === 'elastic_net') {
+      // 弹性网络回归（使用Python）
+      const elasticResult = await elasticNetRegressionPython(X, y);
+
+      result.r2_train = elasticResult.r2_train;
+      result.r2_test = elasticResult.r2_test;
+      result.mse_train = elasticResult.mse_train;
+      result.mse_test = elasticResult.mse_test;
+      result.scatter_data = elasticResult.scatter_data;
+      result.residuals_data = elasticResult.residuals_data;
+
+      const { alpha, l1_ratio, non_zero_features, total_features } = elasticResult.coefficients;
+      result.equation = `弹性网络 (α=${alpha.toFixed(2)}, L1比=${l1_ratio.toFixed(2)}, 选中${non_zero_features}/${total_features}特征)`;
+
+      if (xFields.length === 1) {
+        result.is_single_variable = true;
+        result.time_series_data = cleanData.map((row, idx) => ({
+          x: row[xFields[0]],
+          y_actual: row[yField],
+          y_predicted: elasticResult.predictions[idx]
+        }));
+        result.time_series_data.sort((a: any, b: any) => a.x - b.x);
+      }
+
+    } else if (analysisType === 'svr') {
+      // 支持向量回归（使用Python）
+      const svrResult = await svrRegressionPython(X, y);
+
+      result.r2_train = svrResult.r2_train;
+      result.r2_test = svrResult.r2_test;
+      result.mse_train = svrResult.mse_train;
+      result.mse_test = svrResult.mse_test;
+      result.scatter_data = svrResult.scatter_data;
+      result.residuals_data = svrResult.residuals_data;
+
+      const { kernel, C, epsilon } = svrResult.model_params;
+      result.equation = `SVR (kernel=${kernel}, C=${C.toFixed(2)}, ε=${epsilon.toFixed(2)})`;
+
+      if (xFields.length === 1) {
+        result.is_single_variable = true;
+        result.time_series_data = cleanData.map((row, idx) => ({
+          x: row[xFields[0]],
+          y_actual: row[yField],
+          y_predicted: svrResult.predictions[idx]
+        }));
+        result.time_series_data.sort((a: any, b: any) => a.x - b.x);
+      }
+
+    } else if (analysisType === 'random_forest') {
+      // 随机森林回归（使用Python）
+      const rfResult = await randomForestRegressionPython(X, y);
+
+      result.r2_train = rfResult.r2_train;
+      result.r2_test = rfResult.r2_test;
+      result.mse_train = rfResult.mse_train;
+      result.mse_test = rfResult.mse_test;
+      result.scatter_data = rfResult.scatter_data;
+      result.residuals_data = rfResult.residuals_data;
+      result.feature_importance = rfResult.feature_importance;
+
+      const { n_estimators, max_depth } = rfResult.model_params;
+      result.equation = `随机森林 (${n_estimators}棵树, 最大深度=${max_depth || '无限制'})`;
+
+      if (xFields.length === 1) {
+        result.is_single_variable = true;
+        result.time_series_data = cleanData.map((row, idx) => ({
+          x: row[xFields[0]],
+          y_actual: row[yField],
+          y_predicted: rfResult.predictions[idx]
+        }));
+        result.time_series_data.sort((a: any, b: any) => a.x - b.x);
+      }
+
+    } else if (analysisType === 'gradient_boosting') {
+      // 梯度提升回归（使用Python）
+      const gbResult = await gradientBoostingRegressionPython(X, y);
+
+      result.r2_train = gbResult.r2_train;
+      result.r2_test = gbResult.r2_test;
+      result.mse_train = gbResult.mse_train;
+      result.mse_test = gbResult.mse_test;
+      result.scatter_data = gbResult.scatter_data;
+      result.residuals_data = gbResult.residuals_data;
+      result.feature_importance = gbResult.feature_importance;
+
+      const { n_estimators_used, learning_rate, max_depth } = gbResult.model_params;
+      result.equation = `梯度提升 (${n_estimators_used}次迭代, lr=${learning_rate.toFixed(2)}, 深度=${max_depth})`;
+
+      if (xFields.length === 1) {
+        result.is_single_variable = true;
+        result.time_series_data = cleanData.map((row, idx) => ({
+          x: row[xFields[0]],
+          y_actual: row[yField],
+          y_predicted: gbResult.predictions[idx]
+        }));
+        result.time_series_data.sort((a: any, b: any) => a.x - b.x);
+      }
+
     } else if (analysisType === 'neural_network') {
       // 神经网络回归（使用Python）
       const hiddenLayerSizes = hiddenLayers ? hiddenLayers.split(',').map((s: string) => parseInt(s.trim())) : [100, 50];
@@ -447,7 +670,11 @@ export async function GET(request: NextRequest) {
         { 
           error: `分析类型 "${analysisType}" 暂未实现`,
           message: '该分析方法的后端实现正在开发中，请选择其他分析方法。',
-          available_types: ['polynomial', 'exponential', 'logarithmic', 'neural_network', 'did']
+          available_types: [
+            'linear', 'polynomial', 'exponential', 'logarithmic', 'power',
+            'ridge', 'lasso', 'elastic_net', 'svr', 'random_forest', 
+            'gradient_boosting', 'neural_network', 'did'
+          ]
         },
         { status: 501 }  // 501 Not Implemented
       );

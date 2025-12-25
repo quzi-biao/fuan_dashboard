@@ -189,43 +189,45 @@ export default function CorrelationAnalysisPage() {
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         {/* 配置面板 - 左侧，较窄 */}
         <div className="xl:col-span-3">
-          <AnalysisConfig
-            xFields={xFields}
-            yField={yField}
-            analysisType={analysisType}
-            polynomialDegree={polynomialDegree}
-            hiddenLayers={hiddenLayers}
-            interventionDate={interventionDate}
-            startDate={startDate}
-            endDate={endDate}
-            availableFields={availableFields}
-            loading={loading}
-            timeGranularity={timeGranularity}
-            onXFieldsChange={setXFields}
-            onYFieldChange={setYField}
-            onAnalysisTypeChange={setAnalysisType}
-            onPolynomialDegreeChange={setPolynomialDegree}
-            onHiddenLayersChange={setHiddenLayers}
-            onInterventionDateChange={setInterventionDate}
-            onStartDateChange={setStartDate}
-            onEndDateChange={setEndDate}
-            onTimeGranularityChange={setTimeGranularity}
-            onRunAnalysis={runAnalysis}
-            getFieldLabel={getFieldLabel}
-          />
-          
-          {/* 流量分组回归分析入口 */}
-          <div className="mt-6">
-            <Link
-              href="/correlation/flow-group"
-              className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 px-4 rounded-lg hover:from-green-700 hover:to-blue-700 transition-all flex items-center justify-center gap-2 font-medium shadow-lg"
-            >
-              <TrendingUp className="w-5 h-5" />
-              <span>流量分组回归分析</span>
-            </Link>
-            <p className="text-xs text-gray-600 mt-2 text-center">
-              按城东+岩湖总流量分组分析
-            </p>
+          <div className="sticky top-4">
+            <AnalysisConfig
+              xFields={xFields}
+              yField={yField}
+              analysisType={analysisType}
+              polynomialDegree={polynomialDegree}
+              hiddenLayers={hiddenLayers}
+              interventionDate={interventionDate}
+              startDate={startDate}
+              endDate={endDate}
+              availableFields={availableFields}
+              loading={loading}
+              timeGranularity={timeGranularity}
+              onXFieldsChange={setXFields}
+              onYFieldChange={setYField}
+              onAnalysisTypeChange={setAnalysisType}
+              onPolynomialDegreeChange={setPolynomialDegree}
+              onHiddenLayersChange={setHiddenLayers}
+              onInterventionDateChange={setInterventionDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+              onTimeGranularityChange={setTimeGranularity}
+              onRunAnalysis={runAnalysis}
+              getFieldLabel={getFieldLabel}
+            />
+            
+            {/* 流量分组回归分析入口 */}
+            <div className="mt-4">
+              <Link
+                href="/correlation/flow-group"
+                className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-2 px-3 rounded-md hover:from-green-700 hover:to-blue-700 transition-all flex items-center justify-center gap-2 text-sm shadow-md"
+              >
+                <TrendingUp className="w-4 h-4" />
+                <span>流量分组分析</span>
+              </Link>
+              <p className="text-xs text-gray-500 mt-1.5 text-center">
+                按总流量分组分析
+              </p>
+            </div>
           </div>
         </div>
 
