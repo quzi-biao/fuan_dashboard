@@ -51,6 +51,8 @@ RUN pip3 install --no-cache-dir --break-system-packages -r scripts/requirements.
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/instrumentation.ts ./instrumentation.ts
+COPY --from=builder /app/lib ./lib
 
 # 设置文件所有者
 RUN chown -R nextjs:nodejs /app

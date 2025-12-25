@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - NODE_ENV=production
+    image: fuan-dashboard:latest
     container_name: fuan-dashboard
     restart: unless-stopped
     ports:
