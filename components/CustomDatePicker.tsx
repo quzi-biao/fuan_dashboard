@@ -32,8 +32,14 @@ export function CustomDatePicker({
 }: CustomDatePickerProps) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectingType, setSelectingType] = useState<'start' | 'end'>('start');
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(() => new Date());
+  const [isMounted, setIsMounted] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
+
+  // 标记组件已挂载（客户端）
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // 缓存日期到 localStorage
   useEffect(() => {
@@ -62,6 +68,8 @@ export function CustomDatePicker({
   // 格式化日期显示（完整版）
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '选择日期';
+    // 避免水合错误：仅在客户端格式化日期
+    if (!isMounted) return '选择日期';
     const date = new Date(dateStr);
     return `${date.getMonth() + 1}月${date.getDate()}日`;
   };
@@ -69,12 +77,14 @@ export function CustomDatePicker({
   // 格式化日期显示（简短版，用于小屏幕）
   const formatDateShort = (dateStr: string) => {
     if (!dateStr) return '日期';
+    if (!isMounted) return '日期';
     const date = new Date(dateStr);
     return `${date.getMonth() + 1}/${date.getDate()}`;
   };
 
   const formatFullDate = (dateStr: string) => {
     if (!dateStr) return '未选择';
+    if (!isMounted) return '未选择';
     const date = new Date(dateStr);
     return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
   };

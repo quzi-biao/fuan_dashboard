@@ -164,18 +164,29 @@ export default function CorrelationAnalysisPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       {/* 头部导航 */}
-      <div className="mb-6 flex items-center gap-4">
-        <Link
-          href="/"
-          className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow hover:bg-gray-50 transition text-gray-900"
-        >
-          <ArrowLeft size={20} />
-          <span>返回主页</span>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">关联分析</h1>
-          <p className="text-gray-600 mt-1">分析水厂指标之间的关系</p>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/"
+            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow hover:bg-gray-50 transition text-gray-900"
+          >
+            <ArrowLeft size={20} />
+            <span>返回主页</span>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">关联分析</h1>
+            <p className="text-gray-600 mt-1">分析水厂指标之间的关系</p>
+          </div>
         </div>
+        
+        {/* 流量分组回归分析入口 */}
+        <Link
+          href="/correlation/flow-group"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg hover:from-green-700 hover:to-blue-700 transition-all shadow-md whitespace-nowrap"
+        >
+          <TrendingUp className="w-4 h-4" />
+          <span>流量分组分析</span>
+        </Link>
       </div>
 
       {/* 错误提示 */}
@@ -214,20 +225,6 @@ export default function CorrelationAnalysisPage() {
               onRunAnalysis={runAnalysis}
               getFieldLabel={getFieldLabel}
             />
-            
-            {/* 流量分组回归分析入口 */}
-            <div className="mt-4">
-              <Link
-                href="/correlation/flow-group"
-                className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-2 px-3 rounded-md hover:from-green-700 hover:to-blue-700 transition-all flex items-center justify-center gap-2 text-sm shadow-md"
-              >
-                <TrendingUp className="w-4 h-4" />
-                <span>流量分组分析</span>
-              </Link>
-              <p className="text-xs text-gray-500 mt-1.5 text-center">
-                按总流量分组分析
-              </p>
-            </div>
           </div>
         </div>
 

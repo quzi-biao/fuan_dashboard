@@ -48,6 +48,32 @@ export const FIELD_LABELS: Record<string, string> = {
   'i_1098': '城东-阀门开度',
   'i_1097': '城东-水箱水位',
   'i_1096': '城东-阀门增减量流量设置',
+  
+  // 电压指标
+  'i_1036': 'A相电压',
+  'i_1037': 'B相电压',
+  'i_1038': 'C相电压',
+  
+  // 电流指标
+  'i_1039': 'A相电流',
+  'i_1040': 'B相电流',
+  'i_1041': 'C相电流',
+  
+  // 功率指标
+  'i_1042': '总有功功率',
+  'i_1043': '总无功功率',
+  'i_1044': '总视在功率',
+  'i_1045': '有功总电能',
+  
+  // 运行信号
+  'i_1046': '泵1运行信号',
+  'i_1047': '泵2运行信号',
+  'i_1048': '辅泵运行信号',
+  
+  // 频率指标
+  'i_1049': '泵1运行频率',
+  'i_1050': '泵2运行频率',
+  'i_1051': '辅泵运行频率',
 };
 
 // 获取字段显示标签
@@ -137,6 +163,61 @@ export function AnalysisConfig({
   onRunAnalysis,
   getFieldLabel
 }: AnalysisConfigProps) {
+  
+  // 预设配置：城东流量-岩湖压力分析
+  const applyFlowPressurePreset = () => {
+    onXFieldsChange(['i_1102']); // 城东-瞬时流量
+    onYFieldChange('i_1030'); // 岩湖-出水压力
+    onAnalysisTypeChange('polynomial');
+    onPolynomialDegreeChange(3);
+    if (onTimeGranularityChange) {
+      onTimeGranularityChange('day');
+    }
+    onStartDateChange('2025-08-01');
+    // 使用固定的当前日期字符串，避免水合错误
+    const today = typeof window !== 'undefined' 
+      ? new Date().toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0];
+    onEndDateChange(today);
+  };
+
+  // 预设配置：1号泵效率分析
+  const applyPump1EfficiencyPreset = () => {
+    onXFieldsChange(['i_1049']); // 泵1运行频率
+    onYFieldChange('i_1071'); // 岩湖-实时效率
+    onAnalysisTypeChange('polynomial');
+    onPolynomialDegreeChange(3);
+    if (onTimeGranularityChange) {
+      onTimeGranularityChange('day');
+    }
+    // 过去3天 - 仅在客户端计算
+    if (typeof window !== 'undefined') {
+      const today = new Date();
+      const threeDaysAgo = new Date(today);
+      threeDaysAgo.setDate(today.getDate() - 3);
+      onStartDateChange(threeDaysAgo.toISOString().split('T')[0]);
+      onEndDateChange(today.toISOString().split('T')[0]);
+    }
+  };
+
+  // 预设配置：2号泵效率分析
+  const applyPump2EfficiencyPreset = () => {
+    onXFieldsChange(['i_1050']); // 泵2运行频率
+    onYFieldChange('i_1071'); // 岩湖-实时效率
+    onAnalysisTypeChange('polynomial');
+    onPolynomialDegreeChange(3);
+    if (onTimeGranularityChange) {
+      onTimeGranularityChange('day');
+    }
+    // 过去3天 - 仅在客户端计算
+    if (typeof window !== 'undefined') {
+      const today = new Date();
+      const threeDaysAgo = new Date(today);
+      threeDaysAgo.setDate(today.getDate() - 3);
+      onStartDateChange(threeDaysAgo.toISOString().split('T')[0]);
+      onEndDateChange(today.toISOString().split('T')[0]);
+    }
+  };
   
   const addXField = () => {
     onXFieldsChange([...xFields, '']);
@@ -336,6 +417,36 @@ export function AnalysisConfig({
           cacheKey="correlationDateRange"
           hideButtons
         />
+      </div>
+
+      {/* 预设配置快捷按钮 */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          快速配置
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={applyFlowPressurePreset}
+            disabled={loading}
+            className="px-2 py-2 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            流量-压力
+          </button>
+          <button
+            onClick={applyPump1EfficiencyPreset}
+            disabled={loading}
+            className="px-2 py-2 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            1号泵效率
+          </button>
+          <button
+            onClick={applyPump2EfficiencyPreset}
+            disabled={loading}
+            className="px-2 py-2 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            2号泵效率
+          </button>
+        </div>
       </div>
 
       {/* 执行分析按钮 */}
