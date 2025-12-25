@@ -43,22 +43,35 @@ export function normalizeData(X: number[][]): {
 
 /**
  * 移除异常值（使用IQR方法）
+ * 对小数据集使用更宽松的倍数（3倍IQR而不是1.5倍）
  */
 export function removeOutliers(data: any[], fields: string[]): any[] {
   let filtered = [...data];
+  const initialCount = data.length;
+  
+  // 如果数据量较小，使用更宽松的异常值检测
+  const iqrMultiplier = data.length < 50 ? 3.0 : 1.5;
   
   for (const field of fields) {
+    const beforeFilter = filtered.length;
     const values = filtered.map(row => row[field]).sort((a, b) => a - b);
     const q1 = values[Math.floor(values.length * 0.25)];
     const q3 = values[Math.floor(values.length * 0.75)];
     const iqr = q3 - q1;
-    const lowerBound = q1 - 1.5 * iqr;
-    const upperBound = q3 + 1.5 * iqr;
+    const lowerBound = q1 - iqrMultiplier * iqr;
+    const upperBound = q3 + iqrMultiplier * iqr;
     
     filtered = filtered.filter(row => 
       row[field] >= lowerBound && row[field] <= upperBound
     );
+    
+    const removed = beforeFilter - filtered.length;
+    if (removed > 0) {
+      console.log(`字段 ${field}: 移除 ${removed} 个异常值 (范围: ${lowerBound.toFixed(2)} - ${upperBound.toFixed(2)})`);
+    }
   }
+  
+  console.log(`异常值过滤: ${initialCount} -> ${filtered.length} (移除 ${initialCount - filtered.length} 条)`);
   
   return filtered;
 }

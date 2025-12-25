@@ -99,6 +99,9 @@ export async function GET(request: NextRequest) {
     }
 
     const [rows] = await connection.query<any[]>(query, [startDate, endDate]);
+    console.log('日期参数:', startDate, endDate);
+    console.log('查询:', query);
+    console.log(`查询到原始数据: ${rows?.length || 0} 条`);
 
     if (!rows || rows.length === 0) {
       return NextResponse.json(
@@ -116,12 +119,25 @@ export async function GET(request: NextRequest) {
       return converted;
     });
 
+    console.log(`转换后数据: ${data.length} 条`);
+
     // 移除异常值
     const cleanData = removeOutliers(data, allFields);
 
+    console.log(`移除异常值后数据: ${cleanData.length} 条`);
+    console.log(`分析字段: X=${xFields.join(',')}, Y=${yField}`);
+
     if (cleanData.length < 10) {
       return NextResponse.json(
-        { error: '有效数据点太少，无法进行分析' },
+        { 
+          error: '有效数据点太少，无法进行分析',
+          details: {
+            原始数据: rows.length,
+            转换后: data.length,
+            清洗后: cleanData.length,
+            最少需要: 10
+          }
+        },
         { status: 400 }
       );
     }
