@@ -55,10 +55,43 @@ export function getFieldLabel(field: string): string {
   return FIELD_LABELS[field] || `${field} (未知)`;
 }
 
+// 分析类型定义
+export type AnalysisType = 
+  | 'linear'              // 线性回归
+  | 'polynomial'          // 多项式回归
+  | 'exponential'         // 指数回归
+  | 'logarithmic'         // 对数回归
+  | 'power'               // 幂函数回归
+  | 'ridge'               // 岭回归
+  | 'lasso'               // Lasso回归
+  | 'elastic_net'         // 弹性网络回归
+  | 'svr'                 // 支持向量回归
+  | 'random_forest'       // 随机森林回归
+  | 'gradient_boosting'   // 梯度提升回归
+  | 'neural_network'      // 神经网络回归
+  | 'did';                // 双重差分分析
+
+// 分析方法标签
+export const ANALYSIS_TYPE_LABELS: Record<AnalysisType, string> = {
+  'linear': '线性回归',
+  'polynomial': '多项式回归',
+  'exponential': '指数回归',
+  'logarithmic': '对数回归',
+  'power': '幂函数回归',
+  'ridge': '岭回归 (L2正则化)',
+  'lasso': 'Lasso回归 (L1正则化)',
+  'elastic_net': '弹性网络回归 (L1+L2)',
+  'svr': '支持向量回归 (SVR)',
+  'random_forest': '随机森林回归',
+  'gradient_boosting': '梯度提升回归 (GBDT)',
+  'neural_network': '神经网络回归',
+  'did': '双重差分分析 (DID)'
+};
+
 interface AnalysisConfigProps {
   xFields: string[];
   yField: string;
-  analysisType: 'polynomial' | 'exponential' | 'logarithmic' | 'neural_network' | 'did';
+  analysisType: AnalysisType;
   polynomialDegree: number;
   hiddenLayers: string;
   interventionDate: string;
@@ -69,7 +102,7 @@ interface AnalysisConfigProps {
   timeGranularity?: 'minute' | 'hour' | 'day';
   onXFieldsChange: (fields: string[]) => void;
   onYFieldChange: (field: string) => void;
-  onAnalysisTypeChange: (type: 'polynomial' | 'exponential' | 'logarithmic' | 'neural_network' | 'did') => void;
+  onAnalysisTypeChange: (type: AnalysisType) => void;
   onPolynomialDegreeChange: (degree: number) => void;
   onHiddenLayersChange: (layers: string) => void;
   onInterventionDateChange: (date: string) => void;
@@ -213,62 +246,27 @@ export function AnalysisConfig({
       )}
 
       {/* 分析类型 */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-900 mb-2">
-          分析类型
-        </label>
-        <div className="flex flex-col gap-2">
-          <label className="flex items-center text-gray-900">
-            <input
-              type="radio"
-              value="polynomial"
-              checked={analysisType === 'polynomial'}
-              onChange={(e) => onAnalysisTypeChange(e.target.value as 'polynomial')}
-              className="mr-2"
-            />
-            多项式回归
-          </label>
-          <label className="flex items-center text-gray-900">
-            <input
-              type="radio"
-              value="exponential"
-              checked={analysisType === 'exponential'}
-              onChange={(e) => onAnalysisTypeChange(e.target.value as 'exponential')}
-              className="mr-2"
-            />
-            指数回归
-          </label>
-          <label className="flex items-center text-gray-900">
-            <input
-              type="radio"
-              value="logarithmic"
-              checked={analysisType === 'logarithmic'}
-              onChange={(e) => onAnalysisTypeChange(e.target.value as 'logarithmic')}
-              className="mr-2"
-            />
-            对数回归
-          </label>
-          <label className="flex items-center text-gray-900">
-            <input
-              type="radio"
-              value="neural_network"
-              checked={analysisType === 'neural_network'}
-              onChange={(e) => onAnalysisTypeChange(e.target.value as 'neural_network')}
-              className="mr-2"
-            />
-            神经网络回归
-          </label>
-          <label className="flex items-center text-gray-900">
-            <input
-              type="radio"
-              value="did"
-              checked={analysisType === 'did'}
-              onChange={(e) => onAnalysisTypeChange(e.target.value as 'did')}
-              className="mr-2"
-            />
-            双重差分分析
-          </label>
-        </div>
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">分析类型</h3>
+        <CustomSelect
+          value={analysisType}
+          onChange={(value) => onAnalysisTypeChange(value as AnalysisType)}
+          options={[
+            { value: 'linear', label: `${ANALYSIS_TYPE_LABELS.linear}` },
+            { value: 'polynomial', label: `${ANALYSIS_TYPE_LABELS.polynomial}` },
+            { value: 'exponential', label: `${ANALYSIS_TYPE_LABELS.exponential}` },
+            { value: 'logarithmic', label: `${ANALYSIS_TYPE_LABELS.logarithmic}` },
+            { value: 'power', label: `${ANALYSIS_TYPE_LABELS.power}` },
+            { value: 'ridge', label: `${ANALYSIS_TYPE_LABELS.ridge}` },
+            { value: 'lasso', label: `${ANALYSIS_TYPE_LABELS.lasso}` },
+            { value: 'elastic_net', label: `${ANALYSIS_TYPE_LABELS.elastic_net}` },
+            { value: 'svr', label: `${ANALYSIS_TYPE_LABELS.svr}` },
+            { value: 'random_forest', label: `${ANALYSIS_TYPE_LABELS.random_forest}` },
+            { value: 'gradient_boosting', label: `${ANALYSIS_TYPE_LABELS.gradient_boosting}` },
+            { value: 'neural_network', label: `${ANALYSIS_TYPE_LABELS.neural_network}` },
+            { value: 'did', label: `${ANALYSIS_TYPE_LABELS.did}` },
+          ]}
+        />
       </div>
 
       {/* 多项式阶数 */}

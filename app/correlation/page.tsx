@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
-import { AnalysisConfig, getFieldLabel } from '@/components/correlation/AnalysisConfig';
+import { AnalysisConfig, getFieldLabel, type AnalysisType } from '@/components/correlation/AnalysisConfig';
 import { RegressionResults } from '@/components/correlation/RegressionResults';
 import { DIDResults } from '@/components/correlation/DIDResults';
 import { loadConfigFromCache, saveConfigToCache } from '@/lib/utils/configCache';
@@ -42,7 +42,7 @@ export default function CorrelationAnalysisPage() {
   
   const [xFields, setXFields] = useState<string[]>(cachedConfig?.xFields || ['flow_out']);
   const [yField, setYField] = useState(cachedConfig?.yField || 'pressure_out');
-  const [analysisType, setAnalysisType] = useState<'polynomial' | 'exponential' | 'logarithmic' | 'neural_network' | 'did'>(cachedConfig?.analysisType || 'polynomial');
+  const [analysisType, setAnalysisType] = useState<AnalysisType>(cachedConfig?.analysisType || 'polynomial');
   const [polynomialDegree, setPolynomialDegree] = useState(cachedConfig?.polynomialDegree || 2);
   const [hiddenLayers, setHiddenLayers] = useState(cachedConfig?.hiddenLayers || '100,50');
   const [interventionDate, setInterventionDate] = useState(cachedConfig?.interventionDate || '');

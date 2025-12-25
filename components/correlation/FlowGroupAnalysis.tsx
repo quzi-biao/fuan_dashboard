@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { AnalysisConfig, getFieldLabel } from './AnalysisConfig';
+import { AnalysisConfig, getFieldLabel, type AnalysisType } from './AnalysisConfig';
 import { RegressionResults } from './RegressionResults';
 import { FlowDistribution } from './FlowDistribution';
 import { GroupingConfig } from './GroupingConfig';
@@ -61,7 +61,7 @@ export function FlowGroupAnalysis() {
   // 分析配置
   const [xFields, setXFields] = useState<string[]>(cachedConfig?.xFields || []);
   const [yField, setYField] = useState(cachedConfig?.yField || '');
-  const [analysisType, setAnalysisType] = useState<'polynomial' | 'exponential' | 'logarithmic' | 'neural_network' | 'did'>(cachedConfig?.analysisType || 'polynomial');
+  const [analysisType, setAnalysisType] = useState<AnalysisType>(cachedConfig?.analysisType || 'polynomial');
   const [polynomialDegree, setPolynomialDegree] = useState(cachedConfig?.polynomialDegree || 2);
   const [hiddenLayers, setHiddenLayers] = useState(cachedConfig?.hiddenLayers || '100,50');
   const [interventionDate, setInterventionDate] = useState(cachedConfig?.interventionDate || '');

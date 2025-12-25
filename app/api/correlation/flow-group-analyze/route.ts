@@ -323,7 +323,7 @@ export async function GET(request: NextRequest) {
         })).sort((a, b) => a.x - b.x);
       }
 
-    } else {
+    } else if (analysisType === 'neural_network') {
       // 神经网络回归（使用Python）
       const hiddenLayerSizes = hiddenLayers ? hiddenLayers.split(',').map((s: string) => parseInt(s.trim())) : [100, 50];
       
@@ -364,6 +364,16 @@ export async function GET(request: NextRequest) {
           y_predicted: nnResult.predictions[idx]
         })).sort((a, b) => a.x - b.x);
       }
+    } else {
+      // 未实现的分析类型
+      return NextResponse.json(
+        { 
+          error: `分析类型 "${analysisType}" 暂未实现`,
+          message: '该分析方法的后端实现正在开发中，请选择其他分析方法。',
+          available_types: ['polynomial', 'exponential', 'logarithmic', 'neural_network']
+        },
+        { status: 501 }  // 501 Not Implemented
+      );
     }
 
     return NextResponse.json(result);
