@@ -126,6 +126,7 @@ interface AnalysisConfigProps {
   availableFields: string[];
   loading: boolean;
   timeGranularity?: 'minute' | 'hour' | 'day';
+  pumpType?: string | null;
   onXFieldsChange: (fields: string[]) => void;
   onYFieldChange: (field: string) => void;
   onAnalysisTypeChange: (type: AnalysisType) => void;
@@ -135,6 +136,7 @@ interface AnalysisConfigProps {
   onStartDateChange: (date: string) => void;
   onEndDateChange: (date: string) => void;
   onTimeGranularityChange?: (granularity: 'minute' | 'hour' | 'day') => void;
+  onPumpTypeChange?: (pumpType: string | null) => void;
   onRunAnalysis: () => void;
   getFieldLabel: (field: string) => string;
 }
@@ -151,6 +153,7 @@ export function AnalysisConfig({
   availableFields,
   loading,
   timeGranularity = 'minute',
+  pumpType,
   onXFieldsChange,
   onYFieldChange,
   onAnalysisTypeChange,
@@ -160,18 +163,30 @@ export function AnalysisConfig({
   onStartDateChange,
   onEndDateChange,
   onTimeGranularityChange,
+  onPumpTypeChange,
   onRunAnalysis,
   getFieldLabel
 }: AnalysisConfigProps) {
   
   // 预设配置：城东流量-岩湖压力分析
   const applyFlowPressurePreset = () => {
+    // 如果已选中，则取消选择
+    if (pumpType === 'flow_pressure') {
+      if (onPumpTypeChange) {
+        onPumpTypeChange(null);
+      }
+      return;
+    }
+    
     onXFieldsChange(['i_1102']); // 城东-瞬时流量
     onYFieldChange('i_1030'); // 岩湖-出水压力
     onAnalysisTypeChange('polynomial');
     onPolynomialDegreeChange(3);
     if (onTimeGranularityChange) {
       onTimeGranularityChange('day');
+    }
+    if (onPumpTypeChange) {
+      onPumpTypeChange('flow_pressure'); // 标记为流量压力分析
     }
     onStartDateChange('2025-08-01');
     // 使用固定的当前日期字符串，避免水合错误
@@ -183,12 +198,23 @@ export function AnalysisConfig({
 
   // 预设配置：1号泵效率分析
   const applyPump1EfficiencyPreset = () => {
-    onXFieldsChange(['i_1049']); // 泵1运行频率
+    // 如果已选中，则取消选择
+    if (pumpType === 'pump1') {
+      if (onPumpTypeChange) {
+        onPumpTypeChange(null);
+      }
+      return;
+    }
+    
+    onXFieldsChange(['i_1034']); // 泵1运行频率
     onYFieldChange('i_1071'); // 岩湖-实时效率
     onAnalysisTypeChange('polynomial');
     onPolynomialDegreeChange(3);
     if (onTimeGranularityChange) {
-      onTimeGranularityChange('day');
+      onTimeGranularityChange('minute');
+    }
+    if (onPumpTypeChange) {
+      onPumpTypeChange('pump1'); // 设置为1号泵分析
     }
     // 过去3天 - 仅在客户端计算
     if (typeof window !== 'undefined') {
@@ -200,14 +226,25 @@ export function AnalysisConfig({
     }
   };
 
-  // 预设配置：2号泵效率分析
+  // 预设配置：辅泵效率分析
   const applyPump2EfficiencyPreset = () => {
-    onXFieldsChange(['i_1051']); // 泵2运行频率
+    // 如果已选中，则取消选择
+    if (pumpType === 'aux_pump') {
+      if (onPumpTypeChange) {
+        onPumpTypeChange(null);
+      }
+      return;
+    }
+    
+    onXFieldsChange(['i_1034']); // 辅泵运行频率
     onYFieldChange('i_1071'); // 岩湖-实时效率
     onAnalysisTypeChange('polynomial');
     onPolynomialDegreeChange(3);
     if (onTimeGranularityChange) {
-      onTimeGranularityChange('day');
+      onTimeGranularityChange('minute');
+    }
+    if (onPumpTypeChange) {
+      onPumpTypeChange('aux_pump'); // 设置为辅泵分析
     }
     // 过去3天 - 仅在客户端计算
     if (typeof window !== 'undefined') {
@@ -428,21 +465,33 @@ export function AnalysisConfig({
           <button
             onClick={applyFlowPressurePreset}
             disabled={loading}
-            className="px-2 py-2 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className={`px-2 py-2 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed transition ${
+              pumpType === 'flow_pressure'
+                ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                : 'text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
           >
             流量-压力
           </button>
           <button
             onClick={applyPump1EfficiencyPreset}
             disabled={loading}
-            className="px-2 py-2 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className={`px-2 py-2 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed transition ${
+              pumpType === 'pump1'
+                ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                : 'text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
           >
             1号泵效率
           </button>
           <button
             onClick={applyPump2EfficiencyPreset}
             disabled={loading}
-            className="px-2 py-2 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className={`px-2 py-2 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed transition ${
+              pumpType === 'aux_pump'
+                ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                : 'text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
           >
             辅泵效率
           </button>

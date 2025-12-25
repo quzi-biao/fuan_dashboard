@@ -53,6 +53,7 @@ export default function CorrelationAnalysisPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [availableFields, setAvailableFields] = useState<string[]>([]);
+  const [pumpType, setPumpType] = useState<string | null>(null); // 'pump1', 'aux_pump' 或 null
 
   // 初始化日期范围（仅在缓存中没有日期时设置默认值）
   useEffect(() => {
@@ -145,6 +146,11 @@ export default function CorrelationAnalysisPage() {
         params.append('intervention_date', interventionDate);
       }
 
+      // 如果是泵效率分析，添加泵类型参数
+      if (pumpType) {
+        params.append('pump_type', pumpType);
+      }
+
       const response = await fetch(`/api/correlation/analyze?${params}`);
       
       if (!response.ok) {
@@ -213,6 +219,7 @@ export default function CorrelationAnalysisPage() {
               availableFields={availableFields}
               loading={loading}
               timeGranularity={timeGranularity}
+              pumpType={pumpType}
               onXFieldsChange={setXFields}
               onYFieldChange={setYField}
               onAnalysisTypeChange={setAnalysisType}
@@ -222,6 +229,7 @@ export default function CorrelationAnalysisPage() {
               onStartDateChange={setStartDate}
               onEndDateChange={setEndDate}
               onTimeGranularityChange={setTimeGranularity}
+              onPumpTypeChange={setPumpType}
               onRunAnalysis={runAnalysis}
               getFieldLabel={getFieldLabel}
             />

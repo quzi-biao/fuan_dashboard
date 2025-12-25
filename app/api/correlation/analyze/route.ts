@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
     const degree = parseInt(searchParams.get('degree') || '2');
     const hiddenLayers = searchParams.get('hidden_layers') || '100,50';
     const timeGranularity = searchParams.get('time_granularity') || 'minute';
+    const pumpType = searchParams.get('pump_type'); // 'pump1', 'pump2', 'aux_pump' 或 null
 
     if (!xFieldsStr || !yField || !startDate || !endDate) {
       return NextResponse.json(
@@ -57,8 +58,38 @@ export async function GET(request: NextRequest) {
 
     // 根据时间粒度构建不同的查询
     const allFields = [...xFields, yField];
-    const whereConditions = allFields.map(f => `${f} > 0`).join(' AND ');
     
+    // 泵频率字段映射
+    const pumpFrequencyMap: { [key: string]: string } = {
+      'pump1': 'i_1049',      // 泵1运行频率
+      'aux_pump': 'i_1051'    // 辅泵运行频率
+    };
+    
+    // 构建WHERE条件
+    let whereConditionsList = allFields.map(f => `${f} > 0`);
+    
+    // 如果是泵效率分析，添加泵运行状态的过滤条件
+    if (pumpType && pumpFrequencyMap[pumpType]) {
+      const pumpFreqField = pumpFrequencyMap[pumpType];
+      // 确保当前泵频率 > 0（即使不在 xFields 中）
+      if (!allFields.includes(pumpFreqField)) {
+        whereConditionsList.push(`${pumpFreqField} > 0`);
+      }
+      
+      // 确保其他泵频率 = 0（避免多泵同时运行的数据干扰）
+      Object.entries(pumpFrequencyMap).forEach(([type, field]) => {
+        if (type !== pumpType && !allFields.includes(field)) {
+          whereConditionsList.push(`${field} = 0`);
+        }
+      });
+    }
+    
+    const whereConditions = whereConditionsList.join(' AND ');
+    
+    console.log('泵类型:', pumpType);
+    console.log('分析字段:', allFields);
+    console.log('WHERE条件:', whereConditions);
+
     let query: string;
     if (timeGranularity === 'hour') {
       // 按小时聚合，计算均值
