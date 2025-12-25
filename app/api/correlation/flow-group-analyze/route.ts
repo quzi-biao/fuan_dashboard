@@ -4,9 +4,12 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
-import { polynomialRegressionPython, neuralNetworkRegressionPython } from '@/lib/analysis/pythonRunner';
-import { exponentialRegression } from '@/lib/analysis/exponentialRegression';
-import { logarithmicRegression } from '@/lib/analysis/logarithmicRegression';
+import { 
+  polynomialRegressionPython, 
+  neuralNetworkRegressionPython,
+  exponentialRegressionPython,
+  logarithmicRegressionPython 
+} from '@/lib/analysis/pythonRunner';
 import { removeOutliers } from '@/lib/analysis/dataUtils';
 
 const DB_CONFIG = {
@@ -247,88 +250,76 @@ export async function GET(request: NextRequest) {
       }
 
     } else if (analysisType === 'exponential') {
-      // 指数回归
-      const trainResult = exponentialRegression(XTrain, yTrain);
-      const testResult = exponentialRegression(XTest, yTest);
+      // 指数回归（使用Python，内部进行train/test分割）
+      const expResult = await exponentialRegressionPython(X, y);
 
-      result.r2_train = trainResult.r2;
-      result.r2_test = testResult.r2;
-      result.mse_train = yTrain.reduce((sum, val, idx) => 
-        sum + Math.pow(val - trainResult.predictions[idx], 2), 0) / yTrain.length;
-      result.mse_test = yTest.reduce((sum, val, idx) => 
-        sum + Math.pow(val - testResult.predictions[idx], 2), 0) / yTest.length;
+      result.r2_train = expResult.r2_train;
+      result.r2_test = expResult.r2_test;
+      result.mse_train = expResult.mse_train;
+      result.mse_test = expResult.mse_test;
 
-      result.scatter_data = yTest.map((actual, idx) => ({
-        actual,
-        predicted: testResult.predictions[idx]
-      }));
-
-      result.residuals_data = testResult.predictions.map((pred, idx) => ({
-        predicted: pred,
-        residual: yTest[idx] - pred
-      }));
+      // 使用Python返回的散点图和残差数据
+      result.scatter_data = expResult.scatter_data;
+      result.residuals_data = expResult.residuals_data;
 
       // 生成方程: y = a * e^(b1*x1 + b2*x2 + ...)
-      const coeffs = trainResult.coefficients;
-      let equation = `y = ${coeffs[0].toFixed(4)} · e^(`;
-      const exponentParts: string[] = [];
-      for (let i = 0; i < xFields.length; i++) {
-        const coef = coeffs[i + 1];
-        const sign = coef >= 0 && i > 0 ? '+' : '';
-        exponentParts.push(`${sign}${coef.toFixed(4)}·${xFields[i]}`);
+      const { a, b } = expResult.coefficients;
+      if (xFields.length === 1) {
+        const bVal = typeof b === 'number' ? b : b[0];
+        result.equation = `y = ${a.toFixed(4)} · e^(${bVal.toFixed(4)}·${xFields[0]})`;
+      } else {
+        const bArray = typeof b === 'number' ? [b] : b;
+        const exponentParts = bArray.map((coef, i) => {
+          const sign = coef >= 0 && i > 0 ? '+' : '';
+          return `${sign}${coef.toFixed(4)}·${xFields[i]}`;
+        });
+        result.equation = `y = ${a.toFixed(4)} · e^(${exponentParts.join(' ')})`;
       }
-      equation += exponentParts.join(' ') + ')';
-      result.equation = equation;
 
       // 如果是单变量，返回分组内数据的时间序列用于绘制曲线
       if (xFields.length === 1) {
-        const groupPredictions = exponentialRegression(X, y).predictions;
         result.time_series_data = cleanData.map((row, idx) => ({
           x: row[xFields[0]],
           y_actual: row[yField],
-          y_predicted: groupPredictions[idx]
+          y_predicted: expResult.predictions[idx]
         })).sort((a, b) => a.x - b.x);
       }
 
     } else if (analysisType === 'logarithmic') {
-      // 对数回归
-      const trainResult = logarithmicRegression(XTrain, yTrain);
-      const testResult = logarithmicRegression(XTest, yTest);
+      // 对数回归（使用Python，内部进行train/test分割）
+      const logResult = await logarithmicRegressionPython(X, y);
 
-      result.r2_train = trainResult.r2;
-      result.r2_test = testResult.r2;
-      result.mse_train = yTrain.reduce((sum, val, idx) => 
-        sum + Math.pow(val - trainResult.predictions[idx], 2), 0) / yTrain.length;
-      result.mse_test = yTest.reduce((sum, val, idx) => 
-        sum + Math.pow(val - testResult.predictions[idx], 2), 0) / yTest.length;
+      result.r2_train = logResult.r2_train;
+      result.r2_test = logResult.r2_test;
+      result.mse_train = logResult.mse_train;
+      result.mse_test = logResult.mse_test;
 
-      result.scatter_data = yTest.map((actual, idx) => ({
-        actual,
-        predicted: testResult.predictions[idx]
-      }));
-
-      result.residuals_data = testResult.predictions.map((pred, idx) => ({
-        predicted: pred,
-        residual: yTest[idx] - pred
-      }));
+      // 使用Python返回的散点图和残差数据
+      result.scatter_data = logResult.scatter_data;
+      result.residuals_data = logResult.residuals_data;
 
       // 生成方程: y = a + b1*ln(x1) + b2*ln(x2) + ...
-      const coeffs = trainResult.coefficients;
-      let equation = `y = ${coeffs[0].toFixed(4)}`;
-      for (let i = 0; i < xFields.length; i++) {
-        const coef = coeffs[i + 1];
-        const sign = coef >= 0 ? '+' : '';
-        equation += ` ${sign}${coef.toFixed(4)}·ln(${xFields[i]})`;
+      const { intercept, coef } = logResult.coefficients;
+      if (xFields.length === 1) {
+        const coefVal = typeof coef === 'number' ? coef : coef[0];
+        const sign = coefVal >= 0 ? '+' : '';
+        result.equation = `y = ${intercept.toFixed(4)} ${sign}${coefVal.toFixed(4)}·ln(${xFields[0]})`;
+      } else {
+        const coefArray = typeof coef === 'number' ? [coef] : coef;
+        let equation = `y = ${intercept.toFixed(4)}`;
+        coefArray.forEach((c, i) => {
+          const sign = c >= 0 ? '+' : '';
+          equation += ` ${sign}${c.toFixed(4)}·ln(${xFields[i]})`;
+        });
+        result.equation = equation;
       }
-      result.equation = equation;
 
       // 如果是单变量，返回分组内数据的时间序列用于绘制曲线
       if (xFields.length === 1) {
-        const groupPredictions = logarithmicRegression(X, y).predictions;
         result.time_series_data = cleanData.map((row, idx) => ({
           x: row[xFields[0]],
           y_actual: row[yField],
-          y_predicted: groupPredictions[idx]
+          y_predicted: logResult.predictions[idx]
         })).sort((a, b) => a.x - b.x);
       }
 

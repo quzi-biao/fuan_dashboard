@@ -160,3 +160,63 @@ export async function neuralNetworkRegressionPython(
   
   return result.data;
 }
+
+/**
+ * 执行指数回归分析（Python版本）
+ */
+export async function exponentialRegressionPython(
+  X: number[][],
+  y: number[]
+): Promise<{
+  coefficients: { a: number; b: number | number[] };
+  r2_train: number;
+  r2_test: number;
+  mse_train: number;
+  mse_test: number;
+  predictions: number[];
+  scatter_data: Array<{ actual: number; predicted: number }>;
+  residuals_data: Array<{ predicted: number; residual: number }>;
+}> {
+  const result = await runPythonScript('exponential_regression.py', {
+    X,
+    y,
+    test_size: 0.2,
+    random_state: 42
+  });
+  
+  if (!result.success) {
+    throw new Error(result.error || 'Exponential regression Python script execution failed');
+  }
+  
+  return result.data;
+}
+
+/**
+ * 执行对数回归分析（Python版本）
+ */
+export async function logarithmicRegressionPython(
+  X: number[][],
+  y: number[]
+): Promise<{
+  coefficients: { intercept: number; coef: number | number[] };
+  r2_train: number;
+  r2_test: number;
+  mse_train: number;
+  mse_test: number;
+  predictions: number[];
+  scatter_data: Array<{ actual: number; predicted: number }>;
+  residuals_data: Array<{ predicted: number; residual: number }>;
+}> {
+  const result = await runPythonScript('logarithmic_regression.py', {
+    X,
+    y,
+    test_size: 0.2,
+    random_state: 42
+  });
+  
+  if (!result.success) {
+    throw new Error(result.error || 'Logarithmic regression Python script execution failed');
+  }
+  
+  return result.data;
+}
