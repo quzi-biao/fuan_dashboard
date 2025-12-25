@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, TrendingUp } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Database } from 'lucide-react';
 import Link from 'next/link';
 import { AnalysisConfig, getFieldLabel, type AnalysisType } from '@/components/correlation/AnalysisConfig';
 import { RegressionResults } from '@/components/correlation/RegressionResults';
 import { DIDResults } from '@/components/correlation/DIDResults';
+import { DataSyncModal } from '@/components/DataSyncModal';
 import { loadConfigFromCache, saveConfigToCache } from '@/lib/utils/configCache';
 
 interface AnalysisResult {
@@ -54,6 +55,7 @@ export default function CorrelationAnalysisPage() {
   const [error, setError] = useState<string | null>(null);
   const [availableFields, setAvailableFields] = useState<string[]>([]);
   const [pumpType, setPumpType] = useState<string | null>(null); // 'pump1', 'aux_pump' 或 null
+  const [showDataSyncModal, setShowDataSyncModal] = useState(false);
 
   // 初始化日期范围（仅在缓存中没有日期时设置默认值）
   useEffect(() => {
@@ -185,14 +187,26 @@ export default function CorrelationAnalysisPage() {
           </div>
         </div>
         
-        {/* 流量分组回归分析入口 */}
-        <Link
-          href="/correlation/flow-group"
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg hover:from-green-700 hover:to-blue-700 transition-all shadow-md whitespace-nowrap"
-        >
-          <TrendingUp className="w-4 h-4" />
-          <span>流量分组分析</span>
-        </Link>
+        {/* 右侧按钮组 */}
+        <div className="flex items-center gap-3">
+          {/* 流量分组回归分析入口 */}
+          <Link
+            href="/correlation/flow-group"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg hover:from-green-700 hover:to-blue-700 transition-all shadow-md whitespace-nowrap"
+          >
+            <TrendingUp className="w-4 h-4" />
+            <span>流量分组分析</span>
+          </Link>
+          
+          {/* 数据同步按钮 */}
+          <button
+            onClick={() => setShowDataSyncModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md whitespace-nowrap"
+          >
+            <Database className="w-4 h-4" />
+            <span>数据同步</span>
+          </button>
+        </div>
       </div>
 
       {/* 错误提示 */}
@@ -257,6 +271,12 @@ export default function CorrelationAnalysisPage() {
           </div>
         )}
       </div>
+
+      {/* 数据同步弹窗 */}
+      <DataSyncModal
+        isOpen={showDataSyncModal}
+        onClose={() => setShowDataSyncModal(false)}
+      />
     </div>
   );
 }
