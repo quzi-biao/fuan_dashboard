@@ -47,25 +47,27 @@ export default function CorrelationAnalysisPage() {
   const [hiddenLayers, setHiddenLayers] = useState(cachedConfig?.hiddenLayers || '100,50');
   const [interventionDate, setInterventionDate] = useState(cachedConfig?.interventionDate || '');
   const [timeGranularity, setTimeGranularity] = useState<'minute' | 'hour' | 'day'>(cachedConfig?.timeGranularity || 'minute');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(cachedConfig?.startDate || '');
+  const [endDate, setEndDate] = useState(cachedConfig?.endDate || '');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [availableFields, setAvailableFields] = useState<string[]>([]);
 
-  // 初始化日期范围（最近7天，不包含今天）
+  // 初始化日期范围（仅在缓存中没有日期时设置默认值）
   useEffect(() => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    const sevenDaysAgo = new Date(yesterday);
-    sevenDaysAgo.setDate(yesterday.getDate() - 6);
-    
-    const formatDate = (date: Date) => date.toISOString().split('T')[0];
-    setEndDate(formatDate(yesterday));
-    setStartDate(formatDate(sevenDaysAgo));
-  }, []);
+    if (!startDate || !endDate) {
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      const sevenDaysAgo = new Date(yesterday);
+      sevenDaysAgo.setDate(yesterday.getDate() - 6);
+      
+      const formatDate = (date: Date) => date.toISOString().split('T')[0];
+      if (!endDate) setEndDate(formatDate(yesterday));
+      if (!startDate) setStartDate(formatDate(sevenDaysAgo));
+    }
+  }, [startDate, endDate]);
 
   // 获取可用字段列表
   useEffect(() => {
@@ -86,6 +88,8 @@ export default function CorrelationAnalysisPage() {
   // 保存配置到缓存（当配置变化时）
   useEffect(() => {
     const config = {
+      startDate,
+      endDate,
       xFields,
       yField,
       analysisType,
@@ -95,7 +99,7 @@ export default function CorrelationAnalysisPage() {
       timeGranularity,
     };
     saveConfigToCache(CACHE_KEY, config);
-  }, [xFields, yField, analysisType, polynomialDegree, hiddenLayers, interventionDate, timeGranularity]);
+  }, [startDate, endDate, xFields, yField, analysisType, polynomialDegree, hiddenLayers, interventionDate, timeGranularity]);
 
   // 执行分析
   const runAnalysis = async () => {

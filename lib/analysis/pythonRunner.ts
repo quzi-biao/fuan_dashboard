@@ -120,3 +120,39 @@ export async function polynomialRegressionPython(
   
   return result.data;
 }
+
+/**
+ * 执行神经网络回归分析（Python版本）
+ */
+export async function neuralNetworkRegressionPython(
+  X: number[][],
+  y: number[],
+  X_fields: string[],
+  hidden_layers: number[] = [100, 50],
+  max_iter: number = 1000
+): Promise<{
+  r2_train: number;
+  r2_test: number;
+  mse_train: number;
+  mse_test: number;
+  predictions: number[];
+  feature_importance: Record<string, number>;
+  layers: number[];
+  iterations: number;
+  loss_curve?: number[];
+}> {
+  const result = await runPythonScript('neural_network_regression.py', {
+    X,
+    y,
+    X_fields,
+    hidden_layers,
+    max_iter,
+    random_state: 42
+  });
+  
+  if (!result.success) {
+    throw new Error(result.error || 'Neural network Python script execution failed');
+  }
+  
+  return result.data;
+}

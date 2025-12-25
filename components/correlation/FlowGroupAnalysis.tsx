@@ -48,8 +48,8 @@ export function FlowGroupAnalysis() {
   
   // 分组配置
   const [groupCount, setGroupCount] = useState(cachedConfig?.groupCount || 10);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(cachedConfig?.startDate || '');
+  const [endDate, setEndDate] = useState(cachedConfig?.endDate || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -72,18 +72,20 @@ export function FlowGroupAnalysis() {
   const [analysisResult, setAnalysisResult] = useState<GroupAnalysisResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
 
-  // 初始化日期范围
+  // 初始化日期范围（仅在缓存中没有日期时设置默认值）
   useEffect(() => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    const sevenDaysAgo = new Date(yesterday);
-    sevenDaysAgo.setDate(yesterday.getDate() - 6);
-    
-    const formatDate = (date: Date) => date.toISOString().split('T')[0];
-    setEndDate(formatDate(yesterday));
-    setStartDate(formatDate(sevenDaysAgo));
-  }, []);
+    if (!startDate || !endDate) {
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      const sevenDaysAgo = new Date(yesterday);
+      sevenDaysAgo.setDate(yesterday.getDate() - 6);
+      
+      const formatDate = (date: Date) => date.toISOString().split('T')[0];
+      if (!endDate) setEndDate(formatDate(yesterday));
+      if (!startDate) setStartDate(formatDate(sevenDaysAgo));
+    }
+  }, [startDate, endDate]);
 
   // 获取可用字段列表
   useEffect(() => {
@@ -105,6 +107,8 @@ export function FlowGroupAnalysis() {
   useEffect(() => {
     const config = {
       groupCount,
+      startDate,
+      endDate,
       xFields,
       yField,
       analysisType,
@@ -114,7 +118,7 @@ export function FlowGroupAnalysis() {
       timeGranularity,
     };
     saveConfigToCache(CACHE_KEY, config);
-  }, [groupCount, xFields, yField, analysisType, polynomialDegree, hiddenLayers, interventionDate, timeGranularity]);
+  }, [groupCount, startDate, endDate, xFields, yField, analysisType, polynomialDegree, hiddenLayers, interventionDate, timeGranularity]);
 
   // 执行分组
   async function performGrouping() {

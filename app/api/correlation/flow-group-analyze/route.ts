@@ -4,10 +4,9 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
-import { polynomialRegressionPython } from '@/lib/analysis/pythonRunner';
+import { polynomialRegressionPython, neuralNetworkRegressionPython } from '@/lib/analysis/pythonRunner';
 import { exponentialRegression } from '@/lib/analysis/exponentialRegression';
 import { logarithmicRegression } from '@/lib/analysis/logarithmicRegression';
-import { trainNeuralNetwork } from '@/lib/analysis/neuralNetwork';
 import { removeOutliers } from '@/lib/analysis/dataUtils';
 
 const DB_CONFIG = {
@@ -345,26 +344,29 @@ export async function GET(request: NextRequest) {
       }
 
     } else {
-      // 神经网络回归
+      // 神经网络回归（使用Python）
       const hiddenLayerSizes = hiddenLayers ? hiddenLayers.split(',').map((s: string) => parseInt(s.trim())) : [100, 50];
       
-      const nnResult = trainNeuralNetwork(
-        XTrain, yTrain, XTest, yTest, X, y, xFields, hiddenLayerSizes
+      const nnResult = await neuralNetworkRegressionPython(
+        X, y, xFields, hiddenLayerSizes
       );
       
-      result.r2_train = nnResult.r2Train;
-      result.r2_test = nnResult.r2Test;
-      result.mse_train = nnResult.mseTrain;
-      result.mse_test = nnResult.mseTest;
-      result.feature_importance = nnResult.featureImportance;
+      result.r2_train = nnResult.r2_train;
+      result.r2_test = nnResult.r2_test;
+      result.mse_train = nnResult.mse_train;
+      result.mse_test = nnResult.mse_test;
+      result.feature_importance = nnResult.feature_importance;
 
+      // 计算测试集的起始索引（80%用于训练）
+      const trainSize = Math.floor(cleanData.length * 0.8);
+      
       result.scatter_data = yTest.map((actual, idx) => ({
         actual,
-        predicted: nnResult.predictions[yTrain.length + idx]
+        predicted: nnResult.predictions[trainSize + idx]
       }));
 
       result.residuals_data = yTest.map((actual, idx) => {
-        const predicted = nnResult.predictions[yTrain.length + idx];
+        const predicted = nnResult.predictions[trainSize + idx];
         return {
           predicted,
           residual: actual - predicted
