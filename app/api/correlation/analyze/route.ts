@@ -134,32 +134,21 @@ export async function GET(request: NextRequest) {
     };
 
     if (analysisType === 'polynomial') {
-      // 多项式回归（使用Python）
-      const trainResult = await polynomialRegressionPython(XTrain, yTrain, degree);
-      const testResult = await polynomialRegressionPython(XTest, yTest, degree);
+      // 多项式回归（使用Python，内部进行train/test分割）
+      const polyResult = await polynomialRegressionPython(X, y, degree);
 
-      result.r2_train = trainResult.r2;
-      result.r2_test = testResult.r2;
-      result.mse_train = trainResult.mse || yTrain.reduce((sum, val, idx) => 
-        sum + Math.pow(val - trainResult.predictions[idx], 2), 0) / yTrain.length;
-      result.mse_test = testResult.mse || yTest.reduce((sum, val, idx) => 
-        sum + Math.pow(val - testResult.predictions[idx], 2), 0) / yTest.length;
+      result.r2_train = polyResult.r2_train;
+      result.r2_test = polyResult.r2_test;
+      result.mse_train = polyResult.mse_train;
+      result.mse_test = polyResult.mse_test;
 
-      // 生成散点图数据
-      result.scatter_data = yTest.map((actual, idx) => ({
-        actual,
-        predicted: testResult.predictions[idx]
-      }));
-
-      // 生成残差数据
-      result.residuals_data = testResult.predictions.map((pred: number, idx: number) => ({
-        predicted: pred,
-        residual: yTest[idx] - pred
-      }));
+      // 使用Python返回的散点图和残差数据
+      result.scatter_data = polyResult.scatter_data;
+      result.residuals_data = polyResult.residuals_data;
 
       // 生成多项式表达式
       // 系数顺序: [截距, x1^1, x1^2, ..., x1^degree, x2^1, x2^2, ..., x2^degree, ...]
-      const coeffs = trainResult.coefficients;
+      const coeffs = polyResult.coefficients;
       let equationParts: string[] = [];
       
       // 截距项
@@ -190,12 +179,10 @@ export async function GET(request: NextRequest) {
       // 如果是单变量，生成时间序列数据用于绘制曲线
       if (xFields.length === 1) {
         result.is_single_variable = true;
-        // 使用全部数据生成时间序列
-        const fullResult = await polynomialRegressionPython(X, y, degree);
         result.time_series_data = X.map((xVal, idx) => ({
           x: xVal[0],
           y_actual: y[idx],
-          y_predicted: fullResult.predictions[idx]
+          y_predicted: polyResult.predictions[idx]
         }));
         // 按 x 值排序以便绘制曲线
         result.time_series_data.sort((a: any, b: any) => a.x - b.x);

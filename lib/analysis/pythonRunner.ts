@@ -104,9 +104,13 @@ export async function polynomialRegressionPython(
   degree: number
 ): Promise<{
   coefficients: number[];
-  r2: number;
+  r2_train: number;
+  r2_test: number;
+  mse_train: number;
+  mse_test: number;
   predictions: number[];
-  mse?: number;
+  scatter_data: Array<{ actual: number; predicted: number }>;
+  residuals_data: Array<{ predicted: number; residual: number }>;
 }> {
   const result = await runPythonScript('polynomial_regression.py', {
     X,

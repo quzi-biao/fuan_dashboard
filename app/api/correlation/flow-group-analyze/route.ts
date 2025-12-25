@@ -207,29 +207,20 @@ export async function GET(request: NextRequest) {
     };
 
     if (analysisType === 'polynomial') {
-      // 多项式回归（使用Python）
-      const trainResult = await polynomialRegressionPython(XTrain, yTrain, degree);
-      const testResult = await polynomialRegressionPython(XTest, yTest, degree);
+      // 多项式回归（使用Python，内部进行train/test分割）
+      const polyResult = await polynomialRegressionPython(X, y, degree);
 
-      result.r2_train = trainResult.r2;
-      result.r2_test = testResult.r2;
-      result.mse_train = trainResult.mse || yTrain.reduce((sum, val, idx) => 
-        sum + Math.pow(val - trainResult.predictions[idx], 2), 0) / yTrain.length;
-      result.mse_test = testResult.mse || yTest.reduce((sum, val, idx) => 
-        sum + Math.pow(val - testResult.predictions[idx], 2), 0) / yTest.length;
+      result.r2_train = polyResult.r2_train;
+      result.r2_test = polyResult.r2_test;
+      result.mse_train = polyResult.mse_train;
+      result.mse_test = polyResult.mse_test;
 
-      result.scatter_data = yTest.map((actual, idx) => ({
-        actual,
-        predicted: testResult.predictions[idx]
-      }));
-
-      result.residuals_data = testResult.predictions.map((pred: number, idx: number) => ({
-        predicted: pred,
-        residual: yTest[idx] - pred
-      }));
+      // 使用Python返回的散点图和残差数据
+      result.scatter_data = polyResult.scatter_data;
+      result.residuals_data = polyResult.residuals_data;
 
       // 生成方程
-      const coeffs = trainResult.coefficients;
+      const coeffs = polyResult.coefficients;
       let equation = `y = ${coeffs[0].toFixed(4)}`;
       let coeffIdx = 1;
       for (let fieldIdx = 0; fieldIdx < xFields.length; fieldIdx++) {
@@ -248,12 +239,10 @@ export async function GET(request: NextRequest) {
 
       // 如果是单变量，返回分组内数据的时间序列用于绘制曲线
       if (xFields.length === 1) {
-        // 使用分组内清洗后的数据重新训练，获取预测值
-        const groupResult = await polynomialRegressionPython(X, y, degree);
         result.time_series_data = cleanData.map((row, idx) => ({
           x: row[xFields[0]],
           y_actual: row[yField],
-          y_predicted: groupResult.predictions[idx]
+          y_predicted: polyResult.predictions[idx]
         })).sort((a, b) => a.x - b.x);
       }
 

@@ -174,12 +174,12 @@ export function RegressionResults({ result, xFields, yField, getFieldLabel }: Re
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis 
                   dataKey="x" 
+                  type="number"
                   name={xFields[0]}
                   label={{ value: getFieldLabel(xFields[0]), position: 'insideBottom', offset: -15, fill: '#374151', fontSize: 14 }}
                   tick={{ fill: '#6b7280' }}
                   stroke="#9ca3af"
                   domain={['dataMin', 'dataMax']}
-                  scale="auto"
                   tickFormatter={formatAxisValue}
                 />
                 <YAxis 

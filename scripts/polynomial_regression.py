@@ -10,9 +10,10 @@ import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.model_selection import train_test_split
 
 
-def polynomial_regression(X, y, degree=2):
+def polynomial_regression(X, y, degree=2, test_size=0.2, random_state=42):
     """
     执行多项式回归分析
     
@@ -20,6 +21,8 @@ def polynomial_regression(X, y, degree=2):
         X: 自变量数据 (n_samples, n_features)
         y: 因变量数据 (n_samples,)
         degree: 多项式阶数
+        test_size: 测试集比例
+        random_state: 随机种子
     
     返回:
         dict: 包含系数、R²、预测值等结果
@@ -28,31 +31,55 @@ def polynomial_regression(X, y, degree=2):
     X = np.array(X)
     y = np.array(y)
     
+    # 分割训练集和测试集（随机打乱）
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=random_state, shuffle=True
+    )
+    
     # 生成多项式特征
     poly = PolynomialFeatures(degree=degree, include_bias=True)
-    X_poly = poly.fit_transform(X)
+    X_train_poly = poly.fit_transform(X_train)
+    X_test_poly = poly.transform(X_test)
+    X_poly = poly.transform(X)  # 全部数据的多项式特征
     
     # 训练线性回归模型
     model = LinearRegression(fit_intercept=False)  # 已经包含了截距项
-    model.fit(X_poly, y)
+    model.fit(X_train_poly, y_train)
     
     # 预测
-    predictions = model.predict(X_poly)
+    y_pred_train = model.predict(X_train_poly)
+    y_pred_test = model.predict(X_test_poly)
+    predictions = model.predict(X_poly)  # 全部数据的预测
     
-    # 计算R²
-    r2 = r2_score(y, predictions)
-    
-    # 计算MSE
-    mse = mean_squared_error(y, predictions)
+    # 计算R²和MSE
+    r2_train = r2_score(y_train, y_pred_train)
+    r2_test = r2_score(y_test, y_pred_test)
+    mse_train = mean_squared_error(y_train, y_pred_train)
+    mse_test = mean_squared_error(y_test, y_pred_test)
     
     # 获取系数
     coefficients = model.coef_.tolist()
     
+    # 计算残差数据（使用测试集）
+    scatter_data = [
+        {'actual': float(y_test[i]), 'predicted': float(y_pred_test[i])}
+        for i in range(len(y_test))
+    ]
+    
+    residuals_data = [
+        {'predicted': float(y_pred_test[i]), 'residual': float(y_test[i] - y_pred_test[i])}
+        for i in range(len(y_test))
+    ]
+    
     return {
         'coefficients': coefficients,
-        'r2': float(r2),
-        'mse': float(mse),
-        'predictions': predictions.tolist()
+        'r2_train': float(r2_train),
+        'r2_test': float(r2_test),
+        'mse_train': float(mse_train),
+        'mse_test': float(mse_test),
+        'predictions': predictions.tolist(),
+        'scatter_data': scatter_data,
+        'residuals_data': residuals_data
     }
 
 
