@@ -81,32 +81,46 @@ export default function Home() {
       setLoading(true);
       setError(null);
 
-      // 并行加载四个接口的数据
-      const [latestRes, pressureRes, flowRes, efficiencyRes] = await Promise.all([
-        fetch('/api/latest'),
-        fetch('/api/pressure/latest'),
-        fetch(`/api/flow-analysis?startDate=${flowStartDate}&endDate=${flowEndDate}`),
-        fetch(`/api/efficiency-analysis?startDate=${efficiencyStartDate}&endDate=${efficiencyEndDate}`)
+      // 并行加载四个接口的数据，但各自独立处理错误
+      const [latestRes, pressureRes, flowRes, efficiencyRes] = await Promise.allSettled([
+        fetch('/api/latest').then(res => res.ok ? res.json() : null),
+        fetch('/api/pressure/latest').then(res => res.ok ? res.json() : null),
+        fetch(`/api/flow-analysis?startDate=${flowStartDate}&endDate=${flowEndDate}`).then(res => res.ok ? res.json() : null),
+        fetch(`/api/efficiency-analysis?startDate=${efficiencyStartDate}&endDate=${efficiencyEndDate}`).then(res => res.ok ? res.json() : null)
       ]);
 
-      if (!latestRes.ok || !pressureRes.ok || !flowRes.ok || !efficiencyRes.ok) {
-        throw new Error('数据加载失败');
+      // 处理最新数据
+      if (latestRes.status === 'fulfilled' && latestRes.value) {
+        setLatestData(latestRes.value);
+      } else {
+        console.error('加载最新数据失败');
       }
 
-      const [latest, pressure, flow, efficiency] = await Promise.all([
-        latestRes.json(),
-        pressureRes.json(),
-        flowRes.json(),
-        efficiencyRes.json()
-      ]);
+      // 处理压力数据
+      if (pressureRes.status === 'fulfilled' && pressureRes.value) {
+        setPressureData(pressureRes.value.data);
+        setPressureCollectTime(pressureRes.value.collect_time);
+      } else {
+        console.error('加载压力数据失败');
+      }
 
-      setLatestData(latest); // 保存整个响应对象
-      setPressureData(pressure.data);
-      setPressureCollectTime(pressure.collect_time);
-      setFlowAnalysis(flow.data);
-      setEfficiencyAnalysis(efficiency.data);
+      // 处理流量分析数据
+      if (flowRes.status === 'fulfilled' && flowRes.value) {
+        setFlowAnalysis(flowRes.value.data);
+      } else {
+        console.error('加载流量分析数据失败');
+        setFlowAnalysis([]);
+      }
+
+      // 处理能效分析数据
+      if (efficiencyRes.status === 'fulfilled' && efficiencyRes.value) {
+        setEfficiencyAnalysis(efficiencyRes.value.data);
+      } else {
+        console.error('加载能效分析数据失败');
+        setEfficiencyAnalysis([]);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '加载数据失败');
+      console.error('加载数据时发生错误:', err);
     } finally {
       setLoading(false);
     }
@@ -116,15 +130,9 @@ export default function Home() {
   async function loadFlowAnalysis() {
     if (!flowStartDate || !flowEndDate) return;
     
-    // 验证日期范围不超过30天
+    // 验证日期范围
     const start = new Date(flowStartDate);
     const end = new Date(flowEndDate);
-    const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays > 30) {
-      alert('日期范围不能超过30天');
-      return;
-    }
     
     if (start > end) {
       alert('开始日期不能晚于结束日期');
@@ -136,9 +144,15 @@ export default function Home() {
       if (response.ok) {
         const data = await response.json();
         setFlowAnalysis(data.data);
+      } else {
+        console.error('加载流量分析数据失败: HTTP', response.status);
+        alert('加载流量分析数据失败，请检查日期设置');
+        setFlowAnalysis([]);
       }
     } catch (err) {
       console.error('加载流量分析数据失败', err);
+      alert('加载流量分析数据失败，请检查网络连接');
+      setFlowAnalysis([]);
     }
   }
 
@@ -146,15 +160,9 @@ export default function Home() {
   async function loadEfficiencyAnalysis() {
     if (!efficiencyStartDate || !efficiencyEndDate) return;
     
-    // 验证日期范围不超过30天
+    // 验证日期范围
     const start = new Date(efficiencyStartDate);
     const end = new Date(efficiencyEndDate);
-    const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays > 30) {
-      alert('日期范围不能超过30天');
-      return;
-    }
     
     if (start > end) {
       alert('开始日期不能晚于结束日期');
@@ -166,9 +174,15 @@ export default function Home() {
       if (response.ok) {
         const data = await response.json();
         setEfficiencyAnalysis(data.data);
+      } else {
+        console.error('加载能效分析数据失败: HTTP', response.status);
+        alert('加载能效分析数据失败，请检查日期设置');
+        setEfficiencyAnalysis([]);
       }
     } catch (err) {
       console.error('加载能效分析数据失败', err);
+      alert('加载能效分析数据失败，请检查网络连接');
+      setEfficiencyAnalysis([]);
     }
   }
 

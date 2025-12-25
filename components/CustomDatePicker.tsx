@@ -131,9 +131,19 @@ export function CustomDatePicker({
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     
     if (selectingType === 'start') {
+      // 检查开始日期不能晚于结束日期
+      if (endDate && dateStr > endDate) {
+        alert('开始日期不能晚于结束日期');
+        return;
+      }
       onStartDateChange(dateStr);
       setSelectingType('end');
     } else {
+      // 检查结束日期不能早于开始日期
+      if (startDate && dateStr < startDate) {
+        alert('结束日期不能早于开始日期');
+        return;
+      }
       onEndDateChange(dateStr);
       setShowCalendar(false);
     }
@@ -297,7 +307,6 @@ export function CustomDatePicker({
           </button>
         </>
       )}
-
     </div>
   );
 }

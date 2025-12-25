@@ -12,6 +12,28 @@ export async function GET(request: Request) {
     const endDate = searchParams.get('endDate');
     const days = parseInt(searchParams.get('days') || '7');
     
+    // 验证日期范围
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      // 检查日期是否有效
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return NextResponse.json(
+          { error: '无效的日期格式' },
+          { status: 400 }
+        );
+      }
+      
+      // 检查开始日期不能晚于结束日期
+      if (start > end) {
+        return NextResponse.json(
+          { error: '开始日期不能晚于结束日期' },
+          { status: 400 }
+        );
+      }
+    }
+    
     // 获取数据 - 优先使用日期范围查询
     let rawData;
     if (startDate && endDate) {
