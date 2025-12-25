@@ -21,13 +21,31 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
+# 安装 Python 和必要的系统依赖
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    py3-numpy \
+    py3-scipy \
+    build-base \
+    python3-dev \
+    openblas-dev \
+    && ln -sf python3 /usr/bin/python
+
 # 设置环境变量
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PYTHONUNBUFFERED=1
 
 # 创建非 root 用户
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+
+# 复制 Python 脚本和依赖文件
+COPY --from=builder /app/scripts ./scripts
+
+# 安装 Python 依赖
+RUN pip3 install --no-cache-dir -r scripts/requirements.txt
 
 # 复制必要的文件
 COPY --from=builder /app/public ./public
