@@ -38,7 +38,7 @@ const INDICATORS: {
       { id: '1072', name: '日累计电量', unit: 'kWh' },
       { id: '1035', name: '累计流量', unit: 'm³' },
       { id: '1034', name: '出水流量', unit: 'm³/h' },
-      { id: '1097', name: '清水池液位', unit: 'm' },
+      { id: '1029', name: '清水池液位', unit: 'm' },
       { id: '1031', name: '目标压力', unit: 'MPa' },
       { id: '1030', name: '出水压力', unit: 'MPa' },
     ]

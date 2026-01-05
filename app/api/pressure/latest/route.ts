@@ -2,7 +2,7 @@
  * API: 获取最新压力计数据
  */
 import { NextResponse } from 'next/server';
-import mysql from 'mysql2/promise';
+import { InfluxDB } from '@influxdata/influxdb-client';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -17,15 +17,12 @@ const PRESSURE_METERS = [
   { sn: '862006078961665', label: '老干新村' }
 ];
 
-// water_dev 数据库配置
-const SOURCE_DB_CONFIG = {
-  host: 'gz-cdb-e3z4b5ql.sql.tencentcdb.com',
-  port: 63453,
-  user: 'root',
-  password: 'zsj12345678',
-  database: 'water_dev',
-  charset: 'utf8mb4',
-  connectTimeout: 60000,
+// InfluxDB配置
+const INFLUX_CONFIG = {
+  url: 'http://43.139.93.159:8086',
+  token: 'oPeLbhvS-3OymtJj9z_XmQa7DyvHJHkbh_l-NFYUYYhXBSFHuIElzHy4ULWizikeGLKAiu7D57rhoGEp2cVOZA==',
+  org: 'watersAI',
+  bucket: 'pressData'
 };
 
 // 缓存配置
@@ -68,41 +65,53 @@ async function writeCache(data: any) {
   }
 }
 
-// 从数据库获取最新数据
-async function fetchFromDatabase() {
-  let connection;
+// 从InfluxDB获取最新数据
+async function fetchFromInfluxDB() {
+  const client = new InfluxDB({ url: INFLUX_CONFIG.url, token: INFLUX_CONFIG.token });
+  const queryApi = client.getQueryApi(INFLUX_CONFIG.org);
   
   try {
-    // 连接到 water_dev 数据库
-    connection = await mysql.createConnection(SOURCE_DB_CONFIG);
+    // 查询最近4小时的数据，获取每个压力计的最新记录
+    const query = `
+      from(bucket: "${INFLUX_CONFIG.bucket}")
+        |> range(start: -4h)
+        |> filter(fn: (r) => r["_measurement"] == "pressureData")
+        |> filter(fn: (r) => r["_field"] == "press")
+        |> group(columns: ["sn"])
+        |> last()
+    `;
     
-    // 获取所有压力计的 SN 列表
-    const snList = PRESSURE_METERS.map(m => m.sn);
-    
-    // 查询每个压力计的最新数据
-    const [rows] = await connection.query<any[]>(`
-      SELECT sn, collect_time, press
-      FROM t_press
-      WHERE sn IN (?)
-        AND press IS NOT NULL 
-        AND press > 0
-        AND collect_time >= ?
-      ORDER BY collect_time DESC
-    `, [snList, Date.now() - 4 * 60 * 60 * 1000]); // 查询最近24小时的数据
-    
-    if (!rows || rows.length === 0) {
-      return null;
-    }
-    
-    // 按 SN 分组，获取每个压力计的最新数据
     const latestByMeter = new Map<string, any>();
     
-    rows.forEach(row => {
-      const existing = latestByMeter.get(row.sn);
-      if (!existing || row.collect_time > existing.collect_time) {
-        latestByMeter.set(row.sn, row);
-      }
+    await new Promise<void>((resolve, reject) => {
+      queryApi.queryRows(query, {
+        next(row: string[], tableMeta: any) {
+          const record = tableMeta.toObject(row);
+          const sn = record.sn;
+          const press = record._value;
+          const time = record._time;
+          
+          if (sn && press !== undefined && press > 0) {
+            latestByMeter.set(sn, {
+              sn,
+              press,
+              collect_time: new Date(time).getTime()
+            });
+          }
+        },
+        error(error: Error) {
+          console.error('InfluxDB查询错误:', error);
+          reject(error);
+        },
+        complete() {
+          resolve();
+        }
+      });
     });
+    
+    if (latestByMeter.size === 0) {
+      return null;
+    }
     
     // 转换为压力计数组格式
     const pressureData = PRESSURE_METERS.map(meter => {
@@ -124,17 +133,16 @@ async function fetchFromDatabase() {
       collect_time: new Date(latestTime).toISOString()
     };
     
-  } finally {
-    if (connection) {
-      await connection.end();
-    }
+  } catch (error) {
+    console.error('从InfluxDB获取压力数据失败:', error);
+    return null;
   }
 }
 
 // 异步刷新缓存（不阻塞响应）
 function refreshCacheAsync() {
   // 使用 Promise 异步执行，不等待结果
-  fetchFromDatabase()
+  fetchFromInfluxDB()
     .then(result => {
       if (result) {
         writeCache(result);
@@ -168,9 +176,9 @@ export async function GET() {
       }
     }
     
-    // 缓存不存在，同步查询数据库
-    console.log('缓存不存在，从数据库查询压力数据');
-    const result = await fetchFromDatabase();
+    // 缓存不存在，同步查询InfluxDB
+    console.log('缓存不存在，从InfluxDB查询压力数据');
+    const result = await fetchFromInfluxDB();
     
     if (!result) {
       return NextResponse.json({ error: '没有数据' }, { status: 404 });

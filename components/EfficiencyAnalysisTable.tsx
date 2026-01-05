@@ -42,10 +42,10 @@ export function EfficiencyAnalysisTable({ data }: Props) {
               压力加权均值(MPa)
             </th>
             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              日供水量(m³)
+              日耗电量(kWh)
             </th>
             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              日耗电量(kWh)
+              日供水量(m³)
             </th>
             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
               千吨水电耗

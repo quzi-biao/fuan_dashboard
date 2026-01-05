@@ -61,7 +61,7 @@ export async function GET(request: Request) {
     
     // 生成CSV内容
     const csvRows = [
-      ['日期', '简单平均压力(MPa)', '加权平均压力(MPa)', '最大压力(MPa)', '最小压力(MPa)', '日供水量(m³)', '日耗电量(kWh)', '千吨水电耗(kWh/1000m³)', '单位压力电耗(kWh/MPa/1000m³)'],
+      ['日期', '简单平均压力(MPa)', '加权平均压力(MPa)', '最大压力(MPa)', '最小压力(MPa)', '日耗电量(kWh)', '日供水量(m³)', '千吨水电耗(kWh/1000m³)', '单位压力电耗(kWh/MPa/1000m³)'],
       ...analysis.map(row => [
         row.date,
         row.pressure_simple_avg.toFixed(3),

@@ -249,34 +249,32 @@ export function analyzeEfficiency(data: FlowDataRecord[]): EfficiencyAnalysisRes
     
     // 获取日供水量和日耗电量（使用下一天的数据，因为有偏移）
     // Python: daily_stats['i_1072_adjusted'] = daily_stats['i_1072_max'].shift(-1)
-    let dailyWater = 0;
-    let dailyPower = 0;
-    
+    // 只有当有下一天数据时才添加结果
     if (index < dates.length - 1) {
       const nextDate = dates[index + 1];
       const nextDayMax = dailyMaxValues.get(nextDate);
       if (nextDayMax) {
-        dailyWater = nextDayMax.water;
-        dailyPower = nextDayMax.power;
+        const dailyWater = nextDayMax.water;
+        const dailyPower = nextDayMax.power;
+        
+        // 计算能效指标
+        // Python公式: i_1072_adjusted / i_1073_adjusted * 1000 (水量/电量)
+        const powerPer1000t = dailyPower > 0 ? (dailyWater / dailyPower * 1000) : 0;
+        const powerPerPressure = pressureWeightedAvg > 0 ? (powerPer1000t / pressureWeightedAvg) : 0;
+        
+        results.push({
+          date: nextDate,
+          pressure_simple_avg: pressureSimpleAvg,
+          pressure_weighted_avg: pressureWeightedAvg,
+          pressure_max: pressureMax,
+          pressure_min: pressureMin,
+          daily_water_supply: dailyWater,
+          daily_power_consumption: dailyPower,
+          power_per_1000t: powerPer1000t,
+          power_per_pressure: powerPerPressure
+        });
       }
     }
-    
-    // 计算能效指标
-    // Python公式: i_1072_adjusted / i_1073_adjusted * 1000 (水量/电量)
-    const powerPer1000t = dailyPower > 0 ? (dailyWater / dailyPower * 1000) : 0;
-    const powerPerPressure = pressureWeightedAvg > 0 ? (powerPer1000t / pressureWeightedAvg) : 0;
-    
-    results.push({
-      date,
-      pressure_simple_avg: pressureSimpleAvg,
-      pressure_weighted_avg: pressureWeightedAvg,
-      pressure_max: pressureMax,
-      pressure_min: pressureMin,
-      daily_water_supply: dailyWater,
-      daily_power_consumption: dailyPower,
-      power_per_1000t: powerPer1000t,
-      power_per_pressure: powerPerPressure
-    });
   });
   
   return results;
