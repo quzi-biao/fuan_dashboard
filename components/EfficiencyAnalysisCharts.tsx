@@ -31,8 +31,8 @@ export function EfficiencyAnalysisCharts({ data }: Props) {
 
   // 找出各指标的最大值
   const maxPressure = Math.max(...sortedData.map(d => Math.max(d.pressure_simple_avg, d.pressure_weighted_avg, d.pressure_max)));
-  const maxWater = Math.max(...sortedData.map(d => d.daily_water_supply));
-  const maxPower = Math.max(...sortedData.map(d => d.daily_power_consumption));
+  const maxWater = Math.max(...sortedData.map(d => d.daily_power_consumption));
+  const maxPower = Math.max(...sortedData.map(d => d.daily_water_supply));
   const maxPowerPer1000t = Math.max(...sortedData.map(d => d.power_per_1000t));
   const maxPowerPerPressure = Math.max(...sortedData.map(d => d.power_per_pressure));
 
@@ -60,7 +60,7 @@ export function EfficiencyAnalysisCharts({ data }: Props) {
         <SimpleLineChart 
           data={sortedData}
           lines={[
-            { key: 'daily_water_supply', name: '日供水量', color: '#3b82f6' }
+            { key: 'daily_power_consumption', name: '日供水量', color: '#3b82f6' }
           ]}
           yLabel="供水量 (m³)"
           maxValue={maxWater}
@@ -73,7 +73,7 @@ export function EfficiencyAnalysisCharts({ data }: Props) {
         <SimpleLineChart 
           data={sortedData}
           lines={[
-            { key: 'daily_power_consumption', name: '日耗电量', color: '#8b5cf6' }
+            { key: 'daily_water_supply', name: '日耗电量', color: '#8b5cf6' }
           ]}
           yLabel="耗电量 (kWh)"
           maxValue={maxPower}

@@ -47,20 +47,26 @@ export function FlowAnalysisCharts({ data }: Props) {
       valley_chengdong: dayData['valley']?.chengdong_cumulative_flow || 0,
       flat_chengdong: dayData['flat']?.chengdong_cumulative_flow || 0,
       peak_chengdong: dayData['peak']?.chengdong_cumulative_flow || 0,
-      valley_yanhu: dayData['valley']?.yanhu_cumulative_flow || 0,
-      flat_yanhu: dayData['flat']?.yanhu_cumulative_flow || 0,
-      peak_yanhu: dayData['peak']?.yanhu_cumulative_flow || 0,
-      valley_electricity: dayData['valley']?.yanhu_electricity || 0,
-      flat_electricity: dayData['flat']?.yanhu_electricity || 0,
-      peak_electricity: dayData['peak']?.yanhu_electricity || 0,
+      valley_yanhu: dayData['valley']?.yanhu_electricity || 0,
+      flat_yanhu: dayData['flat']?.yanhu_electricity || 0,
+      peak_yanhu: dayData['peak']?.yanhu_electricity || 0,
+      valley_electricity: dayData['valley']?.yanhu_cumulative_flow || 0,
+      flat_electricity: dayData['flat']?.yanhu_cumulative_flow || 0,
+      peak_electricity: dayData['peak']?.yanhu_cumulative_flow || 0,
       total_chengdong: dayData['total']?.chengdong_cumulative_flow || 0,
-      total_yanhu: dayData['total']?.yanhu_cumulative_flow || 0,
-      total_electricity: dayData['total']?.yanhu_electricity || 0,
+      total_yanhu: dayData['total']?.yanhu_electricity || 0,
+      total_electricity: dayData['total']?.yanhu_cumulative_flow || 0,
       total_supply: dayData['total']?.total_cumulative_flow || 0,
     };
   });
 
   // 找出最大值用于设置Y轴范围
+  const maxChengdongFlow = Math.max(...chartData.flatMap(d => [
+    d.valley_chengdong, d.flat_chengdong, d.peak_chengdong
+  ]));
+  const maxYanhuFlow = Math.max(...chartData.flatMap(d => [
+    d.valley_yanhu, d.flat_yanhu, d.peak_yanhu
+  ]));
   const maxFlow = Math.max(...chartData.flatMap(d => [
     d.valley_chengdong, d.flat_chengdong, d.peak_chengdong,
     d.valley_yanhu, d.flat_yanhu, d.peak_yanhu
@@ -69,6 +75,8 @@ export function FlowAnalysisCharts({ data }: Props) {
     d.valley_electricity, d.flat_electricity, d.peak_electricity
   ]));
   const maxTotalElectricity = Math.max(...chartData.map(d => d.total_electricity));
+  const maxTotalChengdong = Math.max(...chartData.map(d => d.total_chengdong));
+  const maxTotalYanhu = Math.max(...chartData.map(d => d.total_yanhu));
   const maxTotal = Math.max(...chartData.map(d => d.total_supply));
 
   return (
@@ -79,12 +87,12 @@ export function FlowAnalysisCharts({ data }: Props) {
         <SimpleLineChart 
           data={chartData}
           lines={[
-            { key: 'valley_chengdong', name: '谷电', color: '#3b82f6' },
-            { key: 'flat_chengdong', name: '平电', color: '#eab308' },
-            { key: 'peak_chengdong', name: '峰电', color: '#ef4444' }
+            { key: 'valley_chengdong', name: '谷电流量', color: '#3b82f6' },
+            { key: 'flat_chengdong', name: '平电流量', color: '#eab308' },
+            { key: 'peak_chengdong', name: '峰电流量', color: '#ef4444' }
           ]}
           yLabel="流量 (m³)"
-          maxValue={maxFlow}
+          maxValue={maxChengdongFlow}
         />
       </div>
 
@@ -94,12 +102,12 @@ export function FlowAnalysisCharts({ data }: Props) {
         <SimpleLineChart 
           data={chartData}
           lines={[
-            { key: 'valley_yanhu', name: '谷电', color: '#3b82f6' },
-            { key: 'flat_yanhu', name: '平电', color: '#eab308' },
-            { key: 'peak_yanhu', name: '峰电', color: '#ef4444' }
+            { key: 'valley_yanhu', name: '谷电流量', color: '#3b82f6' },
+            { key: 'flat_yanhu', name: '平电流量', color: '#eab308' },
+            { key: 'peak_yanhu', name: '峰电流量', color: '#ef4444' }
           ]}
           yLabel="流量 (m³)"
-          maxValue={maxFlow}
+          maxValue={maxYanhuFlow}
         />
       </div>
 
@@ -109,9 +117,9 @@ export function FlowAnalysisCharts({ data }: Props) {
         <SimpleLineChart 
           data={chartData}
           lines={[
-            { key: 'valley_electricity', name: '谷电', color: '#3b82f6' },
-            { key: 'flat_electricity', name: '平电', color: '#eab308' },
-            { key: 'peak_electricity', name: '峰电', color: '#ef4444' }
+            { key: 'valley_electricity', name: '谷电电量', color: '#3b82f6' },
+            { key: 'flat_electricity', name: '平电电量', color: '#eab308' },
+            { key: 'peak_electricity', name: '峰电电量', color: '#ef4444' }
           ]}
           yLabel="电量 (kWh)"
           maxValue={maxElectricity}
@@ -145,7 +153,7 @@ export function FlowAnalysisCharts({ data }: Props) {
             { key: 'total_chengdong', name: '城东总流量', color: '#3b82f6' }
           ]}
           yLabel="流量 (m³)"
-          maxValue={maxTotal}
+          maxValue={maxTotalChengdong}
         />
       </div>
 
@@ -158,7 +166,7 @@ export function FlowAnalysisCharts({ data }: Props) {
             { key: 'total_yanhu', name: '岩湖总流量', color: '#10b981' }
           ]}
           yLabel="流量 (m³)"
-          maxValue={maxTotal}
+          maxValue={maxTotalYanhu}
         />
       </div>
 
