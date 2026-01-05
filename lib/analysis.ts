@@ -96,6 +96,22 @@ export function analyzeFlowByElectricityPeriod(data: FlowDataRecord[]): FlowAnal
   
   // 分析每一天的每个时段
   dataByDate.forEach((dayData, date) => {
+    // 计算全天的总电量（日累计最大值 - 最小值）
+    const allPowerValues = dayData
+      .map(r => r.yanhu_daily_power)
+      .filter((v): v is number => v !== undefined && v !== null);
+    const totalDailyElectricity = allPowerValues.length > 0
+      ? Math.max(...allPowerValues) - Math.min(...allPowerValues)
+      : 0;
+    
+    // 计算全天的总供水量（日累计最大值 - 最小值）
+    const allWaterValues = dayData
+      .map(r => r.yanhu_daily_water)
+      .filter((v): v is number => v !== undefined && v !== null);
+    const totalDailyWater = allWaterValues.length > 0
+      ? Math.max(...allWaterValues) - Math.min(...allWaterValues)
+      : 0;
+    
     // 按电价时段分组
     const periodData = new Map<ElectricityPeriod, FlowDataRecord[]>();
     
@@ -110,6 +126,37 @@ export function analyzeFlowByElectricityPeriod(data: FlowDataRecord[]): FlowAnal
       }
     });
     
+    // 计算每个时段的电量和供水量增量，用于按比例分配
+    const periodElectricityIncrements = new Map<ElectricityPeriod, number>();
+    const periodWaterIncrements = new Map<ElectricityPeriod, number>();
+    
+    (['valley', 'flat', 'peak'] as ElectricityPeriod[]).forEach(period => {
+      const records = periodData.get(period) || [];
+      if (records.length > 0) {
+        // 电量增量
+        const powerValues = records
+          .map(r => r.yanhu_daily_power)
+          .filter((v): v is number => v !== undefined && v !== null);
+        const powerIncrement = powerValues.length > 0
+          ? Math.max(...powerValues) - Math.min(...powerValues)
+          : 0;
+        periodElectricityIncrements.set(period, powerIncrement);
+        
+        // 供水量增量
+        const waterValues = records
+          .map(r => r.yanhu_daily_water)
+          .filter((v): v is number => v !== undefined && v !== null);
+        const waterIncrement = waterValues.length > 0
+          ? Math.max(...waterValues) - Math.min(...waterValues)
+          : 0;
+        periodWaterIncrements.set(period, waterIncrement);
+      }
+    });
+    
+    // 计算总增量用于比例分配
+    const totalPowerIncrements = Array.from(periodElectricityIncrements.values()).reduce((sum, v) => sum + v, 0);
+    const totalWaterIncrements = Array.from(periodWaterIncrements.values()).reduce((sum, v) => sum + v, 0);
+    
     // 计算每个时段的统计数据
     const periodResults: FlowAnalysisResult[] = [];
     let totalChengdong = 0;
@@ -121,21 +168,23 @@ export function analyzeFlowByElectricityPeriod(data: FlowDataRecord[]): FlowAnal
       if (records.length > 0) {
         const config = ELECTRICITY_PERIODS[period];
         
-        // 计算平均流量
+        // 计算平均流量（用于显示）
         const chengdongAvg = records.reduce((sum, r) => sum + r.chengdong_flow, 0) / records.length;
         const yanhuAvg = records.reduce((sum, r) => sum + r.yanhu_flow, 0) / records.length;
         
-        // 计算累积流量 = 平均流量 × 时段时长
+        // 计算城东累积流量 = 平均流量 × 时段时长
         const chengdongCumulative = chengdongAvg * config.duration_hours;
-        const yanhuCumulative = yanhuAvg * config.duration_hours;
         
-        // 计算电量（最大值 - 最小值）
-        // 注意：Python脚本使用 i_1072 (yanhu_daily_water) 来计算电量差值
-        const powerValues = records
-          .map(r => r.yanhu_daily_water)
-          .filter((v): v is number => v !== undefined && v !== null);
-        const yanhuElectricity = powerValues.length > 0 
-          ? Math.max(...powerValues) - Math.min(...powerValues)
+        // 按比例分配岩湖供水量：时段供水量 = 总供水量 × (时段增量 / 总增量)
+        const waterIncrement = periodWaterIncrements.get(period) || 0;
+        const yanhuCumulative = totalWaterIncrements > 0
+          ? (totalDailyWater * waterIncrement / totalWaterIncrements)
+          : 0;
+        
+        // 按比例分配电量：时段电量 = 总电量 × (时段增量 / 总增量)
+        const powerIncrement = periodElectricityIncrements.get(period) || 0;
+        const yanhuElectricity = totalPowerIncrements > 0
+          ? (totalDailyElectricity * powerIncrement / totalPowerIncrements)
           : 0;
         
         // 累加到总计
