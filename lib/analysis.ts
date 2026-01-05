@@ -201,7 +201,7 @@ export function analyzeFlowByElectricityPeriod(data: FlowDataRecord[]): FlowAnal
           chengdong_cumulative_flow: chengdongCumulative,
           yanhu_cumulative_flow: yanhuCumulative,
           yanhu_electricity: yanhuElectricity,
-          total_cumulative_flow: chengdongCumulative + yanhuCumulative
+          total_cumulative_flow: chengdongCumulative + yanhuElectricity
         });
       }
     });
@@ -220,7 +220,7 @@ export function analyzeFlowByElectricityPeriod(data: FlowDataRecord[]): FlowAnal
         chengdong_cumulative_flow: totalChengdong,
         yanhu_cumulative_flow: totalYanhu,
         yanhu_electricity: totalElectricity,
-        total_cumulative_flow: totalChengdong + totalYanhu,
+        total_cumulative_flow: totalChengdong + totalElectricity,
         is_total: true
       });
     }
