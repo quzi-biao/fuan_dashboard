@@ -54,10 +54,10 @@ export function FlowAnalysisTable({ data }: Props) {
               城东流量(m³)
             </th>
             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              岩湖流量(m³)
+              岩湖电量(kWh)
             </th>
             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              岩湖电量(kWh)
+              岩湖流量(m³)
             </th>
             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
               总供水量(m³)
