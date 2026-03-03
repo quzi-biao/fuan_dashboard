@@ -12,8 +12,9 @@ import { EfficiencyAnalysisTable } from '@/components/EfficiencyAnalysisTable';
 import { FlowAnalysisCharts } from '@/components/FlowAnalysisCharts';
 import { EfficiencyAnalysisCharts } from '@/components/EfficiencyAnalysisCharts';
 import { CustomDatePicker } from '@/components/CustomDatePicker';
-import { Download, BarChart3, Table, Search, TrendingUp } from 'lucide-react';
+import { Download, BarChart3, Table, Search, TrendingUp, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
+import { EnergySavingModal } from '@/components/EnergySavingModal';
 
 export default function Home() {
   const [latestData, setLatestData] = useState<any>(null);
@@ -33,6 +34,9 @@ export default function Home() {
   // 视图切换状态
   const [flowViewMode, setFlowViewMode] = useState<'table' | 'chart'>('table');
   const [efficiencyViewMode, setEfficiencyViewMode] = useState<'table' | 'chart'>('table');
+  
+  // 节能分析弹窗状态
+  const [isEnergySavingModalOpen, setIsEnergySavingModalOpen] = useState(false);
 
   // 初始化日期（不包含今天）
   useEffect(() => {
@@ -246,13 +250,22 @@ export default function Home() {
           <h1 className="text-3xl font-bold text-gray-900">福安数据仪表盘</h1>
           <p className="text-gray-600 mt-2">实时监控水厂运行数据与能效分析</p>
         </div>
-        <Link
-          href="/correlation"
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
-        >
-          <TrendingUp size={20} />
-          <span>关联分析</span>
-        </Link>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setIsEnergySavingModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition"
+          >
+            <Lightbulb size={20} />
+            <span>岩湖水厂节能改造效益分析</span>
+          </button>
+          <Link
+            href="/correlation"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+          >
+            <TrendingUp size={20} />
+            <span>关联分析</span>
+          </Link>
+        </div>
       </div>
 
       {/* 实时数据面板 */}
@@ -364,6 +377,12 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* 节能改造效益分析弹窗 */}
+      <EnergySavingModal 
+        isOpen={isEnergySavingModalOpen}
+        onClose={() => setIsEnergySavingModalOpen(false)}
+      />
     </div>
   );
 }
