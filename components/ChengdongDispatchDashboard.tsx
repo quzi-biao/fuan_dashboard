@@ -144,13 +144,16 @@ function CustomTooltip({ active, payload, label }: any) {
   );
 }
 
-export function ChengdongDispatchDashboard() {
+export function ChengdongDispatchDashboard({ date }: { date?: string }) {
   const [data, setData] = useState<ApiData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/dashboard/chengdong-dispatch')
+    setLoading(true);
+    setError(null);
+    setData(null);
+    fetch(`/api/dashboard/chengdong-dispatch${date ? `?date=${date}` : ''}`)
       .then((r) => r.json())
       .then((json) => {
         if (json.success) setData(json);
@@ -158,7 +161,7 @@ export function ChengdongDispatchDashboard() {
       })
       .catch(() => setError('网络请求失败'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [date]);
 
   // chartData: 24小时数据，带阀门步进位置
   const chartData = useMemo(() => {
@@ -211,12 +214,12 @@ export function ChengdongDispatchDashboard() {
       {/* 日期 + 阀门切换摘要 */}
       <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
         <span>
-          分析日期：<span className="font-medium text-gray-700">{date}</span>（昨日数据）
+          分析日期：<span className="font-medium text-gray-700">{date}</span>
         </span>
         {valve_events.length > 0 && (
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" />
-            共检测到 <span className="font-semibold text-gray-700 mx-0.5">{valve_events.length}</span> 次阀门切换
+            共有 <span className="font-semibold text-gray-700 mx-0.5">{valve_events.length}</span> 次阀门切换
           </span>
         )}
       </div>
@@ -439,27 +442,27 @@ export function ChengdongDispatchDashboard() {
           </thead>
           <tbody>
             {hourly.map((row) => (
-                <tr
-                  key={row.hour}
-                  className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-3 py-1.5 text-gray-800">{row.label}</td>
-                  <td className="px-3 py-1.5 text-center">
-                    <span
-                      className="inline-block px-1.5 py-0.5 rounded text-xs font-medium"
-                      style={{
-                        background: PERIOD_BG[row.period],
-                        color: PERIOD_COLORS[row.period],
-                      }}
-                    >
-                      {row.period_name}
-                    </span>
-                  </td>
-                  <td className="px-3 py-1.5 text-right text-gray-800">{row.chengdong_supply.toLocaleString()}</td>
-                  <td className="px-3 py-1.5 text-right text-gray-800">
-                    {row.avg_water_level != null ? row.avg_water_level.toFixed(2) : '-'}
-                  </td>
-                </tr>
+              <tr
+                key={row.hour}
+                className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+              >
+                <td className="px-3 py-1.5 text-gray-800">{row.label}</td>
+                <td className="px-3 py-1.5 text-center">
+                  <span
+                    className="inline-block px-1.5 py-0.5 rounded text-xs font-medium"
+                    style={{
+                      background: PERIOD_BG[row.period],
+                      color: PERIOD_COLORS[row.period],
+                    }}
+                  >
+                    {row.period_name}
+                  </span>
+                </td>
+                <td className="px-3 py-1.5 text-right text-gray-800">{row.chengdong_supply.toLocaleString()}</td>
+                <td className="px-3 py-1.5 text-right text-gray-800">
+                  {row.avg_water_level != null ? row.avg_water_level.toFixed(2) : '-'}
+                </td>
+              </tr>
             ))}
 
           </tbody>

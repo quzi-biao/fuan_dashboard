@@ -94,13 +94,13 @@ function CustomTooltip({ active, payload, label }: any) {
   );
 }
 
-export function JointSupplyDashboard() {
+export function JointSupplyDashboard({ date }: { date?: string }) {
   const [data, setData] = useState<ApiData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/dashboard/joint-supply')
+    fetch(`/api/dashboard/joint-supply${date ? `?date=${date}` : ''}`)
       .then((r) => r.json())
       .then((json) => {
         if (json.success) setData(json);
@@ -108,7 +108,7 @@ export function JointSupplyDashboard() {
       })
       .catch(() => setError('网络请求失败'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [date]);
 
   if (loading) {
     return (
