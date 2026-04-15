@@ -47,9 +47,9 @@ const PERIOD_COLORS: Record<string, string> = {
 };
 
 const PERIOD_AREAS = [
-  { x1: -0.5, x2: 7.5,  fill: '#fef9c3' },
-  { x1: 7.5,  x2: 9.5,  fill: '#dcfce7' },
-  { x1: 9.5,  x2: 11.5, fill: '#fee2e2' },
+  { x1: -0.5, x2: 7.5, fill: '#fef9c3' },
+  { x1: 7.5, x2: 9.5, fill: '#dcfce7' },
+  { x1: 9.5, x2: 11.5, fill: '#fee2e2' },
   { x1: 11.5, x2: 14.5, fill: '#dcfce7' },
   { x1: 14.5, x2: 19.5, fill: '#fee2e2' },
   { x1: 19.5, x2: 20.5, fill: '#dcfce7' },
@@ -415,20 +415,6 @@ export function YanhuDispatchDashboard({ date: selectedDate }: { date?: string }
                 </td>
               ))}
             </tr>
-            {/* 合计行 */}
-            {summary && (
-              <tr className="border-t-2 border-gray-300 bg-blue-50 font-semibold">
-                <td className="sticky left-0 z-10 bg-blue-50 border-r border-gray-200 px-3 py-1.5 text-gray-700">合计 / 均值</td>
-                {/* 合计行跨所有小时列，只展示一个汇总单元格 */}
-                <td colSpan={24} className="px-3 py-1.5 text-xs text-gray-600">
-                  送水量 <strong className="text-blue-700">{summary.total_flow_m3.toLocaleString()} m³</strong>
-                  &ensp;·&ensp;耗电量 <strong className="text-purple-700">{summary.total_power_kwh.toFixed(1)} kWh</strong>
-                  &ensp;·&ensp;均压 <strong className="text-orange-600">{summary.avg_pressure_mpa.toFixed(3)} MPa</strong>
-                  &ensp;·&ensp;千吨水电耗 <strong className="text-gray-700">{summary.daily_power_1000t?.toFixed(2) ?? '—'} kWh/kt</strong>
-                  &ensp;·&ensp;均泵效 <strong className="text-emerald-600">{summary.avg_pump_efficiency != null ? `${summary.avg_pump_efficiency.toFixed(2)}%` : '—'}</strong>
-                </td>
-              </tr>
-            )}
             {/* 辅泵 */}
             <tr>
               <td className="sticky left-0 z-10 bg-white border-r border-gray-200 px-3 py-1.5 font-medium text-gray-700">辅泵 (i_1051)</td>
