@@ -37,11 +37,24 @@ interface LevelData {
   water_level: number;
 }
 
+interface ValveSession {
+  start_td: number;
+  end_td: number;
+  start_time: string;
+  end_time: string;
+  start_pct: number;
+  end_pct: number;
+  total_delta: number;
+  duration_min: number;
+  direction: 'up' | 'down';
+}
+
 interface ApiData {
   success: boolean;
   date: string;
   hourly: HourlyData[];
   valve_events: ValveEvent[];
+  valve_sessions: ValveSession[];
   initial_valve_pct: number | null;
   level_data: LevelData[];
 }
@@ -220,7 +233,7 @@ export function ChengdongDispatchDashboard({ date: selectedDate }: { date?: stri
         {valve_events.length > 0 && (
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" />
-            共有 <span className="font-semibold text-gray-700 mx-0.5">{valve_events.length}</span> 次阀门切换
+            共 <span className="font-semibold text-gray-700 mx-0.5">{data.valve_sessions?.length ?? 0}</span> 个调节会话
           </span>
         )}
       </div>
@@ -248,25 +261,40 @@ export function ChengdongDispatchDashboard({ date: selectedDate }: { date?: stri
                 />
               ))}
 
-              {/* 阀门切换 ReferenceLine */}
-              {valve_events.map((ev, i) => (
-                <ReferenceLine
-                  key={`valve-${i}`}
-                  x={ev.timeDecimal}
-                  yAxisId="left"
-                  stroke={ev.delta > 0 ? '#16a34a' : '#dc2626'}
-                  strokeWidth={1.5}
-                  strokeDasharray="4 3"
-                  label={(props: any) => (
-                    <ValveSwitchLabel
-                      {...props}
-                      delta={ev.delta}
-                      toPct={ev.to_pct}
-                      index={i}
+              {/* 阀门调节会话：ReferenceArea 色块 + session 起点标注线 */}
+              {data.valve_sessions?.map((s, i) => {
+                const isUp = s.direction === 'up';
+                const color = isUp ? '#16a34a' : '#dc2626';
+                const bgColor = isUp ? '#dcfce7' : '#fee2e2';
+                return (
+                  <React.Fragment key={`session-${i}`}>
+                    {/* 调节时段背景 */}
+                    <ReferenceArea
+                      x1={s.start_td}
+                      x2={s.end_td}
+                      yAxisId="left"
+                      fill={bgColor}
+                      fillOpacity={0.35}
+                      strokeOpacity={0}
                     />
-                  )}
-                />
-              ))}
+                    {/* 起点标注线 */}
+                    <ReferenceLine
+                      x={s.start_td}
+                      yAxisId="left"
+                      stroke={color}
+                      strokeWidth={1.5}
+                      strokeDasharray="4 3"
+                      label={{
+                        value: `${isUp ? '▲' : '▼'} ${s.start_pct}%→${s.end_pct}%`,
+                        position: i % 2 === 0 ? 'insideTopRight' : 'insideBottomRight',
+                        fill: color,
+                        fontSize: 9,
+                        fontWeight: 600,
+                      }}
+                    />
+                  </React.Fragment>
+                );
+              })}
 
               <XAxis
                 dataKey="timeDecimal"
@@ -382,47 +410,39 @@ export function ChengdongDispatchDashboard({ date: selectedDate }: { date?: stri
             {item.label}
           </span>
         ))}
-        <span className="flex items-center gap-1">
-          <span className="text-green-700 font-bold">▲</span><span className="text-green-700">绿线=阀门开大</span>
-          <span className="ml-2 text-red-700 font-bold">▼</span><span className="text-red-700">红线=阀门关小</span>
-        </span>
       </div>
 
-      {/* 阀门切换事件列表 */}
-      {valve_events.length > 0 && (
+      {/* 阀门调节会话卡片 */}
+      {(data.valve_sessions?.length ?? 0) > 0 && (
         <div>
-          <h4 className="text-sm font-semibold text-gray-700 mb-2">阀门切换记录</h4>
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">阀门调节会话</h4>
           <div className="flex flex-wrap gap-2">
-            {valve_events.map((ev, i) => {
-              const isOpen = ev.delta > 0;
+            {data.valve_sessions.map((s, i) => {
+              const isUp = s.direction === 'up';
               return (
                 <div
                   key={i}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs"
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl border text-xs"
                   style={{
-                    background: isOpen ? '#f0fdf4' : '#fef2f2',
-                    borderColor: isOpen ? '#86efac' : '#fca5a5',
+                    background: isUp ? '#f0fdf4' : '#fef2f2',
+                    borderColor: isUp ? '#86efac' : '#fca5a5',
                   }}
                 >
-                  <span
-                    className="font-mono font-semibold"
-                    style={{ color: isOpen ? '#15803d' : '#b91c1c' }}
-                  >
-                    {ev.label}
+                  <span className="text-base" style={{ color: isUp ? '#15803d' : '#b91c1c' }}>
+                    {isUp ? '▲' : '▼'}
                   </span>
-                  <span className="text-gray-500">{ev.from_pct}%</span>
-                  <span style={{ color: isOpen ? '#15803d' : '#b91c1c' }}>
-                    {isOpen ? '→▲' : '→▼'}
-                  </span>
-                  <span
-                    className="font-semibold"
-                    style={{ color: isOpen ? '#15803d' : '#b91c1c' }}
-                  >
-                    {ev.to_pct}%
-                  </span>
-                  <span className="text-gray-400">
-                    ({isOpen ? '+' : ''}{ev.delta}%)
-                  </span>
+                  <div>
+                    <div className="font-mono font-semibold" style={{ color: isUp ? '#15803d' : '#b91c1c' }}>
+                      {s.start_time} – {s.end_time}
+                    </div>
+                    <div className="text-gray-600 mt-0.5">
+                      {s.start_pct}% → {s.end_pct}%
+                      <span className="ml-1 font-semibold" style={{ color: isUp ? '#15803d' : '#b91c1c' }}>
+                        ({isUp ? '+' : ''}{s.total_delta}%)
+                      </span>
+                      <span className="ml-1 text-gray-400">· {s.duration_min}分钟</span>
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -439,7 +459,7 @@ export function ChengdongDispatchDashboard({ date: selectedDate }: { date?: stri
               <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold">时段</th>
               <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">供水量 (m³)</th>
               <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">水位均值 (m)</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">阀门开度最大值 (%)</th>
+              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">阀门开度 (%)</th>
             </tr>
           </thead>
           <tbody>

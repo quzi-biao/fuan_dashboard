@@ -61,6 +61,54 @@ function detectValveSwitches(
   return events;
 }
 
+/**
+ * 将同向连续切换事件合并为调节会话
+ * 规则：同方向 + 时间间隔 <= MAX_GAP_MIN 分钟 → 同一 session
+ */
+function buildValveSessions(events: any[]) {
+  if (events.length === 0) return [];
+
+  const MAX_GAP_MIN = 15;
+  const sessions: any[] = [];
+
+  let sStart = events[0];
+  let sEnd = events[0];
+  let sDir = Math.sign(events[0].delta); // 1=up, -1=down
+
+  const pushSession = () => {
+    const durationMin = Math.round((sEnd.timeDecimal - sStart.timeDecimal) * 60);
+    sessions.push({
+      start_td: sStart.timeDecimal,
+      end_td: sEnd.timeDecimal,
+      start_time: sStart.label,
+      end_time: sEnd.label,
+      start_pct: sStart.from_pct,
+      end_pct: sEnd.to_pct,
+      total_delta: sEnd.to_pct - sStart.from_pct,
+      duration_min: durationMin,
+      direction: sDir > 0 ? 'up' : 'down',
+    });
+  };
+
+  for (let i = 1; i < events.length; i++) {
+    const ev = events[i];
+    const gapMin = (ev.timeDecimal - sEnd.timeDecimal) * 60;
+    const dir = Math.sign(ev.delta);
+
+    if (dir === sDir && gapMin <= MAX_GAP_MIN) {
+      sEnd = ev; // 延伸当前 session
+    } else {
+      pushSession();
+      sStart = ev;
+      sEnd = ev;
+      sDir = dir;
+    }
+  }
+  pushSession(); // 最后一个 session
+
+  return sessions;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -187,11 +235,15 @@ export async function GET(request: Request) {
       water_level: +Number(r.water_level).toFixed(2),
     }));
 
+    // 合并同向连续事件为调节会话
+    const valveSessions = buildValveSessions(valveEvents);
+
     return NextResponse.json({
       success: true,
       date: targetDate,
       hourly: hourlyData,
       valve_events: valveEvents,
+      valve_sessions: valveSessions,
       initial_valve_pct: initialValvePct,
       level_data: levelData,
     });
