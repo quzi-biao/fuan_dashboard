@@ -59,8 +59,8 @@ export async function GET(request: Request) {
       `
       SELECT
         HOUR(collect_time) as hour,
-        AVG(CASE WHEN i_1102 > 0 AND i_1102 < 10000 THEN i_1102 END) as chengdong_avg_flow,
-        AVG(CASE WHEN i_1034 > 0 AND i_1034 < 10000 THEN i_1034 END) as yanhu_avg_flow,
+        AVG(CASE WHEN i_1102 >= 0 AND i_1102 < 10000 THEN i_1102 END) as chengdong_avg_flow,
+        AVG(CASE WHEN i_1034 >= 0 AND i_1034 < 10000 THEN i_1034 END) as yanhu_avg_flow,
         COUNT(*) as cnt
       FROM fuan_data
       WHERE DATE(collect_time) = ?
