@@ -45,12 +45,12 @@ export async function GET(request: Request) {
       SELECT
         HOUR(collect_time) AS hour,
         AVG(CASE WHEN i_1030 > 0.01 AND i_1030 < 2 THEN i_1030 END) AS avg_pressure,
-        -- i_1072 = yanhu_daily_water (日累计水量，m³)，排除 0:00 前一天残留读数
+        -- i_1072 = yanhu_daily_water (实为日累计电量 kWh)，排除 0:00 前一天残留读数
         MAX(CASE WHEN NOT (HOUR(collect_time) = 0 AND MINUTE(collect_time) = 0) AND i_1072 > 0 THEN i_1072 END)
-          AS max_water,
-        -- i_1073 = yanhu_daily_power (日累计电量，kWh)，排除 0:00 前一天残留读数
+          AS max_elec,
+        -- i_1073 = yanhu_daily_power (实为日累计水量 m³)，排除 0:00 前一天残留读数
         MAX(CASE WHEN NOT (HOUR(collect_time) = 0 AND MINUTE(collect_time) = 0) AND i_1073 > 0 THEN i_1073 END)
-          AS max_power,
+          AS max_water,
         MAX(i_1049) AS max_pump1_freq,
         MAX(i_1050) AS max_pump2_freq,
         MAX(i_1051) AS max_aux_freq
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
     (rows as any[]).forEach((r) => { rowMap[r.hour] = r; });
 
     // 跨小时差值：hour 0 直接取 MAX（计数器刚从 0 起步），hours 1-23 取 MAX(h)-MAX(h-1)
-    function getHourlyDelta(field: 'max_water' | 'max_power', hour: number): number {
+    function getHourlyDelta(field: 'max_water' | 'max_elec', hour: number): number {
       const cur = Number(rowMap[hour]?.[field] ?? 0);
       if (cur <= 0) return 0;
       if (hour === 0) return cur;  // 计数器从 0 起步，MAX 即为增量
@@ -84,8 +84,9 @@ export async function GET(request: Request) {
       const row = rowMap[hour];
       const period = getPeriod(hour);
 
-      const flowM3   = +getHourlyDelta('max_water', hour).toFixed(1); // m³
-      const powerKwh = +getHourlyDelta('max_power', hour).toFixed(1); // kWh
+      // i_1073 实为水量 → 送水量； i_1072 实为电量 → 耗电量
+      const flowM3   = +getHourlyDelta('max_water', hour).toFixed(1); // m³  (i_1073)
+      const powerKwh = +getHourlyDelta('max_elec',  hour).toFixed(1); // kWh (i_1072)
       const pressure = row ? (Number(row.avg_pressure) || 0) : 0;
 
       // 千吨水电耗 (kWh/kt)
