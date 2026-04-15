@@ -51,7 +51,10 @@ export async function GET(request: Request) {
       SELECT
         HOUR(collect_time) AS hour,
         AVG(CASE WHEN i_1034 > 0 AND i_1034 < 10000 THEN i_1034 END) AS avg_flow,
-        AVG(CASE WHEN i_1030 > 0.01 AND i_1030 < 2   THEN i_1030 END) AS avg_pressure,
+        -- 流量加权均压，与 analyzeEfficiency 一致：SUM(P×Q)/SUM(Q)
+        SUM(CASE WHEN i_1030 > 0 AND i_1030 < 10 AND i_1034 > 0 AND i_1034 < 10000 THEN i_1030 * i_1034 END)
+          / NULLIF(SUM(CASE WHEN i_1030 > 0 AND i_1030 < 10 AND i_1034 > 0 AND i_1034 < 10000 THEN i_1034 END), 0)
+          AS weighted_pressure,
         -- i_1072 差值作为耗电量分配权重（排除 0:00 前一天残留读数）
         MAX(CASE WHEN NOT (HOUR(collect_time)=0 AND MINUTE(collect_time)=0) AND i_1072 > 0 THEN i_1072 END)
           - MIN(CASE WHEN NOT (HOUR(collect_time)=0 AND MINUTE(collect_time)=0) AND i_1072 > 0 THEN i_1072 END)
@@ -67,20 +70,24 @@ export async function GET(request: Request) {
       [targetDate]
     );
 
-    // ② 日总量：MAX(i_1073)/MAX(i_1072)，与 analyzeEfficiency 完全一致
+    // ② 日总量 + 日流量加权均压
     const [totalRows] = await pool.query<any[]>(
       `
       SELECT
         MAX(CASE WHEN i_1073 > 0 THEN i_1073 END) AS daily_water,
-        MAX(CASE WHEN i_1072 > 0 THEN i_1072 END) AS daily_elec
+        MAX(CASE WHEN i_1072 > 0 THEN i_1072 END) AS daily_elec,
+        SUM(CASE WHEN i_1030 > 0 AND i_1030 < 10 AND i_1034 > 0 AND i_1034 < 10000 THEN i_1030 * i_1034 END)
+          / NULLIF(SUM(CASE WHEN i_1030 > 0 AND i_1030 < 10 AND i_1034 > 0 AND i_1034 < 10000 THEN i_1034 END), 0)
+          AS pressure_weighted_avg
       FROM fuan_data
       WHERE DATE(collect_time) = ?
       `,
       [targetDate]
     );
     const tr = (totalRows as any[])[0] ?? {};
-    const dailyTotalWater = Number(tr.daily_water) || 0; // MAX(i_1073) = 47093 m³
-    const dailyTotalElec  = Number(tr.daily_elec)  || 0; // MAX(i_1072) = 6450 kWh
+    const dailyTotalWater    = Number(tr.daily_water)            || 0;
+    const dailyTotalElec     = Number(tr.daily_elec)             || 0;
+    const dailyWeightedPress = Number(tr.pressure_weighted_avg)  || 0;
 
     const rowMap: Record<number, any> = {};
     (rows as any[]).forEach((r) => { rowMap[r.hour] = r; });
@@ -101,7 +108,7 @@ export async function GET(request: Request) {
       const powerKwh = totalPowerWeight > 0 && dailyTotalElec  > 0
         ? +(dailyTotalElec  * powerWeights[hour] / totalPowerWeight).toFixed(1) : 0;
 
-      const pressure = row ? (Number(row.avg_pressure) || 0) : 0;
+      const pressure = row ? (Number(row.weighted_pressure) || 0) : 0;
 
       // 千吨水电耗 (kWh/kt)
       const power1000t    = flowM3 > 0 && powerKwh > 0 ? +(powerKwh * 1000 / flowM3).toFixed(2) : null;
@@ -132,12 +139,10 @@ export async function GET(request: Request) {
       };
     });
 
-    // 日汇总 = 小时累加（与日总量精确一致，无舍入误差之外的偏差）
-    const totalFlow  = hourlyData.reduce((s, h) => s + h.flow_m3, 0);
-    const totalPower = hourlyData.reduce((s, h) => s + h.power_kwh, 0);
-    const pressHours = hourlyData.filter(h => h.pressure_mpa > 0);
-    const avgPressure = pressHours.length > 0
-      ? pressHours.reduce((s, h) => s + h.pressure_mpa, 0) / pressHours.length : 0;
+    // 日汇总
+    const totalFlow   = hourlyData.reduce((s, h) => s + h.flow_m3, 0);
+    const totalPower  = hourlyData.reduce((s, h) => s + h.power_kwh, 0);
+    const avgPressure = dailyWeightedPress; // 全天流量加权均压，与 analyzeEfficiency 一致
     const dailyP1000t  = totalFlow > 0 && totalPower > 0 ? totalPower * 1000 / totalFlow : null;
     const effHours = hourlyData.filter(h => h.pump_efficiency != null && h.pump_efficiency > 0);
     const avgPumpEff = effHours.length > 0
