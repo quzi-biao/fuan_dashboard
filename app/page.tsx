@@ -245,25 +245,27 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       {/* 标题和导航 */}
-      <div className="mb-6 flex items-start justify-between">
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">福安数据仪表盘</h1>
-          <p className="text-gray-600 mt-2">实时监控水厂运行数据与能效分析</p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">福安数据仪表盘</h1>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">实时监控水厂运行数据与能效分析</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 flex-shrink-0">
           <button
             onClick={() => setIsEnergySavingModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition"
+            title="岩湖水厂节能改造效益分析"
           >
             <Lightbulb size={20} />
-            <span>岩湖水厂节能改造效益分析</span>
+            <span className="hidden sm:inline">岩湖水厂节能改造效益分析</span>
           </button>
           <Link
             href="/correlation"
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+            title="关联分析"
           >
             <TrendingUp size={20} />
-            <span>关联分析</span>
+            <span className="hidden sm:inline">关联分析</span>
           </Link>
         </div>
       </div>
