@@ -26,10 +26,34 @@ export async function GET(request: Request) {
     const dateParam = searchParams.get('date');
 
     const pool = getPool();
-    const yesterday = new Date(Date.now() - 86400000);
-    const targetDate =
-      dateParam ||
-      `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
+    // 优先使用传入日期，否则自动查找最近7天内有数据的最新日期
+    let targetDate = dateParam || null;
+
+    if (!targetDate) {
+      const [recentDates] = await pool.query<any[]>(
+        `
+        SELECT DATE(collect_time) as d
+        FROM fuan_data
+        WHERE collect_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+          AND i_1102 > 0
+        GROUP BY DATE(collect_time)
+        ORDER BY d DESC
+        LIMIT 2
+        `
+      );
+      if (recentDates.length >= 2) {
+        targetDate = recentDates[1].d instanceof Date
+          ? recentDates[1].d.toISOString().split('T')[0]
+          : String(recentDates[1].d);
+      } else if (recentDates.length === 1) {
+        targetDate = recentDates[0].d instanceof Date
+          ? recentDates[0].d.toISOString().split('T')[0]
+          : String(recentDates[0].d);
+      } else {
+        return NextResponse.json({ error: '最近7天无供水数据' }, { status: 404 });
+      }
+    }
 
     // 每小时聚合：供水量 + 清水池水位 + 阀门开度
     const [hourlyRows] = await pool.query<any[]>(

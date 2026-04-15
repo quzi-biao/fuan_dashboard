@@ -25,11 +25,35 @@ export async function GET(request: Request) {
 
     const pool = getPool();
 
-    // 默认昨天，支持传入指定日期
-    const yesterday = new Date(Date.now() - 86400000);
-    const targetDate =
-      dateParam ||
-      `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+    // 优先使用传入日期，否则自动查找最近7天内有数据的最新日期
+    let targetDate = dateParam || null;
+
+    if (!targetDate) {
+      // 查找最近7天内有实际供水数据的最新日期
+      const [recentDates] = await pool.query<any[]>(
+        `
+        SELECT DATE(collect_time) as d
+        FROM fuan_data
+        WHERE collect_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+          AND (i_1102 > 0 OR i_1034 > 0)
+        GROUP BY DATE(collect_time)
+        ORDER BY d DESC
+        LIMIT 2
+        `
+      );
+      // 取倒数第二天（最新完整数据日，排除今天可能仍在写入的数据）
+      if (recentDates.length >= 2) {
+        targetDate = recentDates[1].d instanceof Date
+          ? recentDates[1].d.toISOString().split('T')[0]
+          : String(recentDates[1].d);
+      } else if (recentDates.length === 1) {
+        targetDate = recentDates[0].d instanceof Date
+          ? recentDates[0].d.toISOString().split('T')[0]
+          : String(recentDates[0].d);
+      } else {
+        return NextResponse.json({ error: '最近7天无供水数据' }, { status: 404 });
+      }
+    }
 
     const [rows] = await pool.query<any[]>(
       `
