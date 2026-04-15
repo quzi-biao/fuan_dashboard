@@ -178,7 +178,7 @@ export function ChengdongDispatchDashboard() {
       {/* 日期与数据说明 */}
       <div className="text-sm text-gray-500 flex flex-wrap gap-3 items-center">
         <span>
-          分析日期：<span className="font-medium text-gray-700">{date}</span>（昨日数据）
+          分析日期：<span className="font-medium text-gray-700">{date}</span>
         </span>
         <span className="text-xs text-gray-400">
           · 水位/阀门数据：每分钟一个点 · 供水量：小时平均
@@ -191,7 +191,7 @@ export function ChengdongDispatchDashboard() {
           <ResponsiveContainer width="100%" height={500}>
             <ComposedChart
               data={mergedData}
-              margin={{ top: 10, right: 70, bottom: 40, left: 80 }}
+              margin={{ top: 10, right: 70, bottom: 10, left: 80 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
 
@@ -203,7 +203,7 @@ export function ChengdongDispatchDashboard() {
                   x2={area.x2}
                   yAxisId="left"
                   fill={area.fill}
-                  fillOpacity={0.65}
+                  fillOpacity={0.25}
                   strokeOpacity={0}
                 />
               ))}
@@ -217,7 +217,7 @@ export function ChengdongDispatchDashboard() {
                 tick={{ fontSize: 10, fill: '#6b7280' }}
                 angle={-45}
                 textAnchor="end"
-                height={50}
+                height={40}
               />
 
               {/* 左轴：供水量 */}

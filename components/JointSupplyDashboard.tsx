@@ -139,7 +139,7 @@ export function JointSupplyDashboard() {
     <div className="space-y-6">
       {/* 日期标注 */}
       <div className="text-sm text-gray-500">
-        分析日期：<span className="font-medium text-gray-700">{date}</span>（昨日数据）
+        分析日期：<span className="font-medium text-gray-700">{date}</span>
       </div>
 
       {/* 时段汇总小卡片 */}
@@ -148,7 +148,7 @@ export function JointSupplyDashboard() {
           <div
             key={ps.period}
             className="rounded-xl p-3 border"
-            style={{ background: PERIOD_BG[ps.period] + 'cc', borderColor: PERIOD_BG[ps.period] }}
+            style={{ background: PERIOD_BG[ps.period] + '55', borderColor: PERIOD_BG[ps.period] }}
           >
             <div className="text-xs font-bold mb-1.5" style={{ color: PERIOD_COLORS[ps.period] }}>
               {PERIOD_LABEL_MAP[ps.period]}期
@@ -170,7 +170,7 @@ export function JointSupplyDashboard() {
           <ResponsiveContainer width="100%" height={500}>
             <ComposedChart
               data={hourly}
-              margin={{ top: 10, right: 20, bottom: 40, left: 70 }}
+              margin={{ top: 10, right: 20, bottom: 10, left: 70 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
 
@@ -181,7 +181,7 @@ export function JointSupplyDashboard() {
                   x1={area.x1}
                   x2={area.x2}
                   fill={area.fill}
-                  fillOpacity={0.65}
+                  fillOpacity={0.25}
                   strokeOpacity={0}
                   yAxisId="left"
                 />
@@ -196,7 +196,7 @@ export function JointSupplyDashboard() {
                 tick={{ fontSize: 10, fill: '#6b7280' }}
                 angle={-45}
                 textAnchor="end"
-                height={50}
+                height={40}
               />
               <YAxis
                 yAxisId="left"
