@@ -450,9 +450,14 @@ export function ChengdongDispatchDashboard({ date: selectedDate }: { date?: stri
         </div>
       )}
 
-      {/* 每小时数据表格（时间为列） */}
+      {/* 每小时数据表格（时间为列，占满宽度） */}
       <div className="overflow-x-auto rounded-lg border border-gray-200">
-        <table className="text-xs border-collapse whitespace-nowrap">
+        <table className="w-full table-fixed text-xs border-collapse">
+          {/* 列宽分配：指标列固定 90px，其余 24 列均分 */}
+          <colgroup>
+            <col style={{ width: 90 }} />
+            {hourly.map((h) => <col key={h.hour} />)}
+          </colgroup>
           {/* 表头行：指标 | 0:00 | 1:00 | … | 23:00 */}
           <thead>
             <tr className="bg-gray-50 text-gray-700">

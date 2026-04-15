@@ -257,56 +257,70 @@ export function JointSupplyDashboard({ date: selectedDate }: { date?: string }) 
         ))}
       </div>
 
-      {/* 分时数据表格 */}
-      <div className="overflow-x-auto rounded-lg border border-gray-200" style={{ maxHeight: 300, overflowY: 'auto' }}>
-        <table className="w-full text-sm border-collapse">
-          <thead className="sticky top-0 z-10">
-            <tr className="bg-gray-50 text-gray-800">
-              <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold">时间</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold">时段</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">城东 (m³/h)</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">岩湖 (m³/h)</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">合计 (m³/h)</th>
+      {/* 分时数据表格（时间为列，占满宽度） */}
+      <div className="overflow-x-auto rounded-lg border border-gray-200">
+        <table className="w-full table-fixed text-xs border-collapse">
+          <colgroup>
+            <col style={{ width: 90 }} />
+            {hourly.map((h) => <col key={h.hour} />)}
+            <col style={{ width: 72 }} />
+          </colgroup>
+          <thead>
+            <tr className="bg-gray-50 text-gray-700">
+              <th className="sticky left-0 z-20 bg-gray-50 border-b border-r border-gray-200 px-2 py-2 text-left font-semibold">指标</th>
+              {hourly.map((h) => (
+                <th
+                  key={h.hour}
+                  className="border-b border-gray-200 px-1 py-2 text-center font-medium"
+                  style={{ background: PERIOD_BG[h.period], color: PERIOD_COLORS[h.period] }}
+                >
+                  {h.label}
+                </th>
+              ))}
+              <th className="border-b border-l border-gray-200 px-2 py-2 text-center font-semibold bg-gray-100 text-gray-700">合计</th>
             </tr>
           </thead>
           <tbody>
-            {hourly.map((row) => (
-              <tr
-                key={row.hour}
-                className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-              >
-                <td className="px-3 py-1.5 text-gray-800">{row.label}</td>
-                <td className="px-3 py-1.5 text-center">
-                  <span
-                    className="inline-block px-1.5 py-0.5 rounded text-xs font-medium"
-                    style={{
-                      background: PERIOD_BG[row.period],
-                      color: PERIOD_COLORS[row.period],
-                    }}
-                  >
-                    {row.period_name}
-                  </span>
+            {/* 城东 */}
+            <tr className="border-b border-gray-100">
+              <td className="sticky left-0 z-10 bg-white border-r border-gray-200 px-2 py-1.5 font-medium text-gray-700">城东 (m³)</td>
+              {hourly.map((h) => (
+                <td key={h.hour} className="px-1 py-1.5 text-center text-gray-800">
+                  {h.chengdong_supply > 0 ? h.chengdong_supply.toLocaleString() : <span className="text-gray-300">—</span>}
                 </td>
-                <td className="px-3 py-1.5 text-right text-gray-800">{row.chengdong_supply.toLocaleString()}</td>
-                <td className="px-3 py-1.5 text-right text-gray-800">{row.yanhu_supply.toLocaleString()}</td>
-                <td className="px-3 py-1.5 text-right font-semibold text-gray-900">{row.total_supply.toLocaleString()}</td>
-              </tr>
-            ))}
-            <tr className="bg-gray-50 font-semibold border-t-2 border-gray-300 text-gray-800">
-              <td className="px-3 py-2" colSpan={2}>全天合计</td>
-              <td className="px-3 py-2 text-right">
+              ))}
+              <td className="border-l border-gray-200 px-2 py-1.5 text-center font-semibold text-gray-800 bg-gray-50">
                 {hourly.reduce((s, h) => s + h.chengdong_supply, 0).toLocaleString()}
               </td>
-              <td className="px-3 py-2 text-right">
+            </tr>
+            {/* 岩湖 */}
+            <tr className="border-b border-gray-100 bg-gray-50/50">
+              <td className="sticky left-0 z-10 bg-gray-50 border-r border-gray-200 px-2 py-1.5 font-medium text-gray-700">岩湖 (m³)</td>
+              {hourly.map((h) => (
+                <td key={h.hour} className="px-1 py-1.5 text-center text-gray-800">
+                  {h.yanhu_supply > 0 ? h.yanhu_supply.toLocaleString() : <span className="text-gray-300">—</span>}
+                </td>
+              ))}
+              <td className="border-l border-gray-200 px-2 py-1.5 text-center font-semibold text-gray-800 bg-gray-50">
                 {hourly.reduce((s, h) => s + h.yanhu_supply, 0).toLocaleString()}
               </td>
-              <td className="px-3 py-2 text-right">
+            </tr>
+            {/* 合计 */}
+            <tr>
+              <td className="sticky left-0 z-10 bg-white border-r border-gray-200 px-2 py-1.5 font-semibold text-gray-800">合计 (m³)</td>
+              {hourly.map((h) => (
+                <td key={h.hour} className="px-1 py-1.5 text-center font-semibold text-gray-900">
+                  {h.total_supply > 0 ? h.total_supply.toLocaleString() : <span className="text-gray-300">—</span>}
+                </td>
+              ))}
+              <td className="border-l border-gray-200 px-2 py-1.5 text-center font-bold text-gray-900 bg-gray-50">
                 {hourly.reduce((s, h) => s + h.total_supply, 0).toLocaleString()}
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+
     </div>
   );
 }
