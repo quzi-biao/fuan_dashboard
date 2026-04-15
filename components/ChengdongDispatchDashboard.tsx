@@ -41,6 +41,7 @@ interface ApiData {
   date: string;
   hourly: HourlyData[];
   valve_events: ValveEvent[];
+  initial_valve_pct: number | null;
   level_data: LevelData[];
 }
 
@@ -128,7 +129,8 @@ function CustomTooltip({ active, payload, label }: any) {
         let unit = '';
         const color = p.stroke || p.fill;
         if (p.dataKey === 'chengdong_supply') unit = ' m³';
-        if (p.dataKey === 'water_level') unit = ' m';
+        if (p.dataKey === 'water_level' || p.dataKey === 'avg_water_level') unit = ' m';
+        if (p.dataKey === 'valve_position') unit = ' %';
         return (
           <div key={p.dataKey} className="flex items-center gap-2 mt-1" style={{ color }}>
             <span className="w-3 h-3 rounded-sm inline-block flex-shrink-0" style={{ background: color }} />
@@ -158,14 +160,24 @@ export function ChengdongDispatchDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  // 图表数据：24小时供水量 + 水位（小时均值做图），水位精细数据走独立 Line data
+  // chartData: 24小时数据，带阀门步进位置
   const chartData = useMemo(() => {
     if (!data) return [];
-    return data.hourly.map((h) => ({
-      timeDecimal: h.hour,
-      chengdong_supply: h.chengdong_supply,
-      avg_water_level: h.avg_water_level,
-    }));
+    // 根据 initial_valve_pct + valve_events 重建每小时的阀门开度（步进）
+    const { valve_events, initial_valve_pct, hourly } = data;
+    return hourly.map((h) => {
+      // 该小时结束前最后一次切换的 to_pct
+      const lastEvent = [...valve_events]
+        .filter((ev) => ev.timeDecimal <= h.hour + 0.999)
+        .pop();
+      const valvePos = lastEvent ? lastEvent.to_pct : initial_valve_pct;
+      return {
+        timeDecimal: h.hour,
+        chengdong_supply: h.chengdong_supply,
+        avg_water_level: h.avg_water_level,
+        valve_position: valvePos,
+      };
+    });
   }, [data]);
 
   if (loading) {
@@ -296,6 +308,14 @@ export function ChengdongDispatchDashboard() {
                 }}
               />
 
+              {/* 隐藏轴：阀门开度 0-100% */}
+              <YAxis
+                yAxisId="right-valve"
+                orientation="right"
+                domain={[0, 100]}
+                hide
+              />
+
               <Tooltip content={<CustomTooltip />} />
               <Legend
                 verticalAlign="top"
@@ -314,7 +334,7 @@ export function ChengdongDispatchDashboard() {
                 radius={[2, 2, 0, 0]}
               />
 
-              {/* 清水池水位折线（小时均值） */}
+              {/* 清水池水位折线 */}
               <Line
                 yAxisId="right-level"
                 dataKey="avg_water_level"
@@ -324,6 +344,19 @@ export function ChengdongDispatchDashboard() {
                 dot={{ r: 3, fill: '#f97316' }}
                 connectNulls={false}
                 type="monotone"
+              />
+
+              {/* 阀门开度折线（步进，隐藏轴） */}
+              <Line
+                yAxisId="right-valve"
+                dataKey="valve_position"
+                name="阀门开度"
+                stroke="#8b5cf6"
+                strokeWidth={1.5}
+                strokeDasharray="5 3"
+                dot={{ r: 2, fill: '#8b5cf6' }}
+                connectNulls={false}
+                type="stepAfter"
               />
             </ComposedChart>
           </ResponsiveContainer>
@@ -402,16 +435,10 @@ export function ChengdongDispatchDashboard() {
               <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold">时段</th>
               <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">供水量 (m³)</th>
               <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">水位均值 (m)</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold">阀门切换</th>
             </tr>
           </thead>
           <tbody>
-            {hourly.map((row) => {
-              // 找该小时内的阀门切换事件
-              const hourEvents = valve_events.filter(
-                (ev) => Math.floor(ev.timeDecimal) === row.hour
-              );
-              return (
+            {hourly.map((row) => (
                 <tr
                   key={row.hour}
                   className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
@@ -432,29 +459,9 @@ export function ChengdongDispatchDashboard() {
                   <td className="px-3 py-1.5 text-right text-gray-800">
                     {row.avg_water_level != null ? row.avg_water_level.toFixed(2) : '-'}
                   </td>
-                  <td className="px-3 py-1.5">
-                    {hourEvents.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {hourEvents.map((ev, j) => (
-                          <span
-                            key={j}
-                            className="text-xs px-1 py-0.5 rounded font-medium"
-                            style={{
-                              color: ev.delta > 0 ? '#15803d' : '#b91c1c',
-                              background: ev.delta > 0 ? '#f0fdf4' : '#fef2f2',
-                            }}
-                          >
-                            {ev.label} {ev.from_pct}%{ev.delta > 0 ? '↑' : '↓'}{ev.to_pct}%
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-gray-300">—</span>
-                    )}
-                  </td>
                 </tr>
-              );
-            })}
+            ))}
+
           </tbody>
         </table>
       </div>

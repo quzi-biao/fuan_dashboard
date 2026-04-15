@@ -170,6 +170,14 @@ export async function GET(request: Request) {
       }))
     );
 
+    // 当天首个有效阀门读数（用于前端重建步进曲线的起始值）
+    const sortedValveRows = (valveMinuteRows as any[])
+      .filter((r) => Number(r.valve) >= 0 && Number(r.valve) <= 100)
+      .sort((a, b) => Number(a.hour) * 60 + Number(a.minute) - (Number(b.hour) * 60 + Number(b.minute)));
+    const initialValvePct = sortedValveRows.length > 0
+      ? Math.round(Number(sortedValveRows[0].valve))
+      : null;
+
     // 每5分钟水位折线
     const levelData = (levelMinuteRows as any[]).map((r) => ({
       timeDecimal: Number(r.hour) + Number(r.minute) / 60,
@@ -182,6 +190,7 @@ export async function GET(request: Request) {
       date: targetDate,
       hourly: hourlyData,
       valve_events: valveEvents,
+      initial_valve_pct: initialValvePct,
       level_data: levelData,
     });
   } catch (error) {
