@@ -7,7 +7,8 @@
 import React, { useState } from 'react';
 import { JointSupplyDashboard } from './JointSupplyDashboard';
 import { ChengdongDispatchDashboard } from './ChengdongDispatchDashboard';
-import { BarChart2, Activity, ChevronLeft, ChevronRight } from 'lucide-react';
+import { YanhuDispatchDashboard } from './YanhuDispatchDashboard';
+import { BarChart2, Activity, Gauge, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // ---- 日期工具 ----
 function toDateStr(d: Date): string {
@@ -33,7 +34,7 @@ function getYesterday(): string {
 }
 
 export function DashboardPanel() {
-  const [activeTab, setActiveTab] = useState<'joint-supply' | 'chengdong-dispatch'>('joint-supply');
+  const [activeTab, setActiveTab] = useState<'joint-supply' | 'chengdong-dispatch' | 'yanhu-dispatch'>('joint-supply');
   const [selectedDate, setSelectedDate] = useState<string>(getYesterday());
 
   const yesterday = getYesterday();
@@ -51,6 +52,12 @@ export function DashboardPanel() {
       label: '福安城东水厂智能错峰调度运行分析',
       shortLabel: '城东错峰调度',
       icon: <Activity size={15} />,
+    },
+    {
+      id: 'yanhu-dispatch' as const,
+      label: '福安岩湖水厂二级泵房高效节能智能调度运行分析',
+      shortLabel: '岩湖泵房调度',
+      icon: <Gauge size={15} />,
     },
   ];
 
@@ -123,6 +130,9 @@ export function DashboardPanel() {
         )}
         {activeTab === 'chengdong-dispatch' && (
           <ChengdongDispatchDashboard key={selectedDate} date={selectedDate} />
+        )}
+        {activeTab === 'yanhu-dispatch' && (
+          <YanhuDispatchDashboard key={selectedDate} date={selectedDate} />
         )}
       </div>
     </div>
