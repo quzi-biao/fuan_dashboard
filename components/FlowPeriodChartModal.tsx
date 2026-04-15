@@ -133,9 +133,9 @@ export function FlowPeriodChartModal({ data, onClose }: Props) {
                 />
                 <Tooltip
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb', boxShadow: '0 4px 12px rgba(0,0,0,.08)' }}
-                  formatter={(val: number, name: string) => [
-                    val.toLocaleString(),
-                    LEGEND_LABELS[name] ?? name,
+                  formatter={(val: any, name: any) => [
+                    val != null ? Math.abs(val).toLocaleString() : '',
+                    LEGEND_LABELS[name as string] ?? name,
                   ]}
                 />
                 <Legend
