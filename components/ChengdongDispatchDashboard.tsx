@@ -75,7 +75,7 @@ function CustomTooltip({ active, payload, label }: any) {
         if (p.value == null) return null;
         let unit = '';
         let color = p.stroke || p.fill;
-        if (p.dataKey === 'chengdong_supply') unit = ' m³/h';
+        if (p.dataKey === 'chengdong_supply') unit = ' m³';
         if (p.dataKey === 'water_level') unit = ' m';
         if (p.dataKey === 'valve_opening') unit = ' %';
         return (
@@ -181,7 +181,7 @@ export function ChengdongDispatchDashboard() {
           分析日期：<span className="font-medium text-gray-700">{date}</span>
         </span>
         <span className="text-xs text-gray-400">
-          · 水位/阀门数据：每分钟一个点 · 供水量：小时平均
+          · 水位/阀门数据：每分钟一个点 · 供水量：小时累计 (m³)
         </span>
       </div>
 
@@ -226,7 +226,7 @@ export function ChengdongDispatchDashboard() {
                 orientation="left"
                 tick={{ fontSize: 11, fill: '#6b7280' }}
                 label={{
-                  value: '供水量 (m³/h)',
+                  value: '供水量 (m³)',
                   angle: -90,
                   position: 'insideLeft',
                   dx: -60,
@@ -274,7 +274,7 @@ export function ChengdongDispatchDashboard() {
                 name="城东供水量"
                 fill="#4f86c6"
                 fillOpacity={0.85}
-                barSize={36}
+                barSize={50}
                 radius={[2, 2, 0, 0]}
               />
 
@@ -331,7 +331,7 @@ export function ChengdongDispatchDashboard() {
             <tr className="bg-gray-50 text-gray-800">
               <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold">时间</th>
               <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold">时段</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">供水量 (m³/h)</th>
+              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">供水量 (m³)</th>
               <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">水位均值 (m)</th>
               <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">阀门开度均值 (%)</th>
             </tr>
