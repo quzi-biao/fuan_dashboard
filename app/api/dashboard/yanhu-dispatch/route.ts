@@ -43,6 +43,12 @@ export async function GET(request: Request) {
     const dateParam = searchParams.get('date');
     const targetDate = dateParam || getYesterday();
 
+    const prevDate = (() => {
+      const d = new Date(targetDate + 'T00:00:00');
+      d.setDate(d.getDate() - 1);
+      return toDateStr(d);
+    })();
+
     const pool = getPool();
 
     // ① 每小时聚合（用于权重分配 + 压力 + 泵频）
@@ -70,24 +76,34 @@ export async function GET(request: Request) {
       [targetDate]
     );
 
-    // ② 日总量 + 日流量加权均压
-    const [totalRows] = await pool.query<any[]>(
-      `
-      SELECT
-        MAX(CASE WHEN i_1073 > 0 THEN i_1073 END) AS daily_water,
-        MAX(CASE WHEN i_1072 > 0 THEN i_1072 END) AS daily_elec,
-        SUM(CASE WHEN i_1030 > 0 AND i_1030 < 10 AND i_1034 > 0 AND i_1034 < 10000 THEN i_1030 * i_1034 END)
-          / NULLIF(SUM(CASE WHEN i_1030 > 0 AND i_1030 < 10 AND i_1034 > 0 AND i_1034 < 10000 THEN i_1034 END), 0)
-          AS pressure_weighted_avg
-      FROM fuan_data
-      WHERE DATE(collect_time) = ?
-      `,
-      [targetDate]
-    );
+    // ② 日总量 +  日流量加权均压（压力用前一天，与 analyzeEfficiency shift(-1) 一致）
+    const [[totalRows], [prevPressRows]] = await Promise.all([
+      pool.query<any[]>(
+        `SELECT
+          MAX(CASE WHEN i_1073 > 0 THEN i_1073 END) AS daily_water,
+          MAX(CASE WHEN i_1072 > 0 THEN i_1072 END) AS daily_elec,
+          SUM(CASE WHEN i_1030 > 0 AND i_1030 < 10 AND i_1034 > 0 AND i_1034 < 10000 THEN i_1030 * i_1034 END)
+            / NULLIF(SUM(CASE WHEN i_1030 > 0 AND i_1030 < 10 AND i_1034 > 0 AND i_1034 < 10000 THEN i_1034 END), 0)
+            AS pressure_weighted_avg
+         FROM fuan_data WHERE DATE(collect_time) = ?`,
+        [targetDate]
+      ),
+      pool.query<any[]>(
+        `SELECT
+          SUM(CASE WHEN i_1030 > 0 AND i_1030 < 10 AND i_1034 > 0 AND i_1034 < 10000 THEN i_1030 * i_1034 END)
+            / NULLIF(SUM(CASE WHEN i_1030 > 0 AND i_1030 < 10 AND i_1034 > 0 AND i_1034 < 10000 THEN i_1034 END), 0)
+            AS pressure_weighted_avg
+         FROM fuan_data WHERE DATE(collect_time) = ?`,
+        [prevDate]
+      ),
+    ]);
     const tr = (totalRows as any[])[0] ?? {};
-    const dailyTotalWater    = Number(tr.daily_water)            || 0;
-    const dailyTotalElec     = Number(tr.daily_elec)             || 0;
-    const dailyWeightedPress = Number(tr.pressure_weighted_avg)  || 0;
+    const dailyTotalWater    = Number(tr.daily_water) || 0;
+    const dailyTotalElec     = Number(tr.daily_elec)  || 0;
+    // 压力：前一天的流量加权均值（shift(-1)），备选当天
+    const prevPressRow       = (prevPressRows as any[])[0] ?? {};
+    const dailyWeightedPress = Number(prevPressRow.pressure_weighted_avg) || Number(tr.pressure_weighted_avg) || 0;
+
 
     const rowMap: Record<number, any> = {};
     (rows as any[]).forEach((r) => { rowMap[r.hour] = r; });
