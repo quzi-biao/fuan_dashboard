@@ -108,14 +108,14 @@ export async function GET(request: Request) {
 
     const periodSummary = (['valley', 'flat', 'peak'] as const).map((period) => {
       const res = analysisResults.find((r) => r.period === period);
-      const chengdong = res ? Math.round(res.chengdong_cumulative_flow) : 0;
-      const yanhu = res ? Math.round(res.yanhu_cumulative_flow) : 0;
+      const chengdong = res ? +res.chengdong_cumulative_flow.toFixed(1) : 0;
+      const yanhu = res ? +res.yanhu_cumulative_flow.toFixed(1) : 0;
       return {
         period,
         period_name: PERIOD_NAMES[period],
         chengdong_total: chengdong,
         yanhu_total: yanhu,
-        total: chengdong + yanhu,
+        total: +(chengdong + yanhu).toFixed(1),
       };
     });
 
