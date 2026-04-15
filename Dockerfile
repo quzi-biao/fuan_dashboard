@@ -5,16 +5,19 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # 复制 package 文件
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml ./
+
+# 安装 pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # 安装依赖
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # 复制源代码
 COPY . .
 
 # 构建应用
-RUN npm run build
+RUN pnpm run build
 
 # 生产阶段
 FROM node:20-alpine AS runner
