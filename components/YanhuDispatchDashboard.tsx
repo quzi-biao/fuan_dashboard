@@ -229,7 +229,7 @@ export function YanhuDispatchDashboard({ date: selectedDate }: { date?: string }
                   value: '压力 (MPa)',
                   angle: 90,
                   position: 'insideRight',
-                  dx: 60,
+                  dx: 10,
                   fontSize: 11,
                   fill: '#f97316',
                 }}

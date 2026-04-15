@@ -12,9 +12,10 @@ import { EfficiencyAnalysisTable } from '@/components/EfficiencyAnalysisTable';
 import { FlowAnalysisCharts } from '@/components/FlowAnalysisCharts';
 import { EfficiencyAnalysisCharts } from '@/components/EfficiencyAnalysisCharts';
 import { CustomDatePicker } from '@/components/CustomDatePicker';
-import { Download, BarChart3, Table, Search, TrendingUp, Lightbulb } from 'lucide-react';
+import { Download, BarChart3, Table, Search, TrendingUp, Lightbulb, PieChart } from 'lucide-react';
 import Link from 'next/link';
 import { EnergySavingModal } from '@/components/EnergySavingModal';
+import { FlowPeriodChartModal } from '@/components/FlowPeriodChartModal';
 import { DashboardPanel } from '@/components/DashboardPanel';
 
 export default function Home() {
@@ -38,6 +39,8 @@ export default function Home() {
   
   // 节能分析弹窗状态
   const [isEnergySavingModalOpen, setIsEnergySavingModalOpen] = useState(false);
+  // 流量时段图弹窗状态
+  const [showFlowPeriodChart, setShowFlowPeriodChart] = useState(false);
 
   // 初始化日期（不包含今天）
   useEffect(() => {
@@ -317,6 +320,14 @@ export default function Home() {
                   )}
                 </button>
                 <button
+                  onClick={() => setShowFlowPeriodChart(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-sm"
+                  title="时段堆叠柱状图"
+                >
+                  <PieChart size={14} />
+                  <span className="hidden sm:inline">堆叠图</span>
+                </button>
+                <button
                   onClick={exportFlowReport}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm"
                   title="导出报表"
@@ -389,6 +400,14 @@ export default function Home() {
         isOpen={isEnergySavingModalOpen}
         onClose={() => setIsEnergySavingModalOpen(false)}
       />
+
+      {/* 流量时段堆叠柱状图弹窗 */}
+      {showFlowPeriodChart && (
+        <FlowPeriodChartModal
+          data={flowAnalysis}
+          onClose={() => setShowFlowPeriodChart(false)}
+        />
+      )}
     </div>
   );
 }
