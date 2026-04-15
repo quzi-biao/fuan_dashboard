@@ -1,15 +1,16 @@
 /**
  * 福安城东水厂智能错峰调度运行分析看板
- * 图表：柱状图（城东每小时供水量）+ 折线（清水池水位）+ 折线（阀门开度）
- * 水位和阀门开度使用每分钟原始数据绘制，供水量为小时聚合
- * 双 Y 轴：左 = 供水量 (m³/h)，右 = 清水池水位 (m)，阀门开度 (%) 使用隐藏轴
+ * 图表：柱状图（城东每小时供水量）+ 折线（清水池水位，每5分钟）
+ *       + ReferenceLine 标注阀门切换时刻（绿色=开大，红色=关小）
+ * 表格：每小时供水量与水位均值
+ * 事件列表：阀门切换时刻和前后开度
  */
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ReferenceArea, ResponsiveContainer,
+  Tooltip, Legend, ReferenceArea, ReferenceLine, ResponsiveContainer,
 } from 'recharts';
 
 interface HourlyData {
@@ -17,23 +18,30 @@ interface HourlyData {
   label: string;
   chengdong_supply: number;
   avg_water_level: number | null;
-  max_valve_opening: number | null;
   period: string;
   period_name: string;
 }
 
-interface MinuteData {
+interface ValveEvent {
+  timeDecimal: number;
+  label: string;       // e.g. "10:23"
+  from_pct: number;
+  to_pct: number;
+  delta: number;       // positive = 开大, negative = 关小
+}
+
+interface LevelData {
   timeDecimal: number;
   label: string;
-  water_level: number | null;
-  valve_opening: number | null;
+  water_level: number;
 }
 
 interface ApiData {
   success: boolean;
   date: string;
   hourly: HourlyData[];
-  minute: MinuteData[];
+  valve_events: ValveEvent[];
+  level_data: LevelData[];
 }
 
 const PERIOD_BG: Record<string, string> = {
@@ -47,7 +55,6 @@ const PERIOD_COLORS: Record<string, string> = {
   peak: '#b91c1c',
 };
 
-// 时段背景区间（数值型 x 轴，单位：小时）
 const PERIOD_AREAS = [
   { x1: -0.5, x2: 7.5, fill: '#fef9c3' },
   { x1: 7.5, x2: 9.5, fill: '#dcfce7' },
@@ -59,25 +66,69 @@ const PERIOD_AREAS = [
   { x1: 21.5, x2: 23.5, fill: '#dcfce7' },
 ];
 
+/** 自定义 ReferenceLine 标签，显示切换方向和新开度 */
+function ValveSwitchLabel({
+  viewBox,
+  delta,
+  toPct,
+  index,
+}: {
+  viewBox?: { x: number; y: number; width: number; height: number };
+  delta: number;
+  toPct: number;
+  index: number;
+}) {
+  if (!viewBox) return null;
+  const { x, y } = viewBox;
+  const isOpen = delta > 0;
+  const color = isOpen ? '#15803d' : '#b91c1c';
+  const arrow = isOpen ? '▲' : '▼';
+  // 奇偶交替位置，避免标签密集时重叠
+  const labelY = index % 2 === 0 ? y + 16 : y + 36;
+
+  return (
+    <g>
+      <rect
+        x={x - 18}
+        y={labelY - 11}
+        width={38}
+        height={14}
+        rx={3}
+        fill={isOpen ? '#dcfce7' : '#fee2e2'}
+        stroke={color}
+        strokeWidth={0.8}
+        opacity={0.92}
+      />
+      <text
+        x={x + 1}
+        y={labelY}
+        textAnchor="middle"
+        fill={color}
+        fontSize={9}
+        fontWeight="600"
+      >
+        {arrow}{toPct}%
+      </text>
+    </g>
+  );
+}
+
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
-
-  // 将 timeDecimal 转换为可读时间
   const td = typeof label === 'number' ? label : parseFloat(label);
   const hh = Math.floor(td);
   const mm = Math.round((td - hh) * 60);
   const timeLabel = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg text-sm min-w-[170px]">
+    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg text-sm min-w-[160px]">
       <p className="font-semibold text-gray-700 mb-2">{timeLabel}</p>
       {payload.map((p: any) => {
         if (p.value == null) return null;
         let unit = '';
-        let color = p.stroke || p.fill;
+        const color = p.stroke || p.fill;
         if (p.dataKey === 'chengdong_supply') unit = ' m³';
         if (p.dataKey === 'water_level') unit = ' m';
-        if (p.dataKey === 'avg_valve_opening' || p.dataKey === 'max_valve_opening') unit = ' %';
         return (
           <div key={p.dataKey} className="flex items-center gap-2 mt-1" style={{ color }}>
             <span className="w-3 h-3 rounded-sm inline-block flex-shrink-0" style={{ background: color }} />
@@ -107,6 +158,15 @@ export function ChengdongDispatchDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
+  // 图表数据：24小时供水量 + 水位（小时均值做图），水位精细数据走独立 Line data
+  const chartData = useMemo(() => {
+    if (!data) return [];
+    return data.hourly.map((h) => ({
+      timeDecimal: h.hour,
+      chengdong_supply: h.chengdong_supply,
+      avg_water_level: h.avg_water_level,
+    }));
+  }, [data]);
 
   if (loading) {
     return (
@@ -117,12 +177,10 @@ export function ChengdongDispatchDashboard() {
     );
   }
   if (error || !data) {
-    return (
-      <div className="flex items-center justify-center h-64 text-red-500">{error || '暂无数据'}</div>
-    );
+    return <div className="flex items-center justify-center h-64 text-red-500">{error || '暂无数据'}</div>;
   }
 
-  const { hourly, date } = data;
+  const { hourly, date, valve_events } = data;
   const hasData = hourly.some((h) => h.chengdong_supply > 0);
 
   if (!hasData) {
@@ -133,25 +191,22 @@ export function ChengdongDispatchDashboard() {
     );
   }
 
-  // 右轴 (水位) 范围
   const levelValues = hourly.map((h) => h.avg_water_level).filter((v): v is number => v != null && v > 0);
   const maxLevel = levelValues.length > 0 ? Math.ceil(Math.max(...levelValues) * 1.2) : 12;
 
-  // 图表数据：24个小时数据点，barSize 能正确生效；水位/阀门使用小时均值
-  const chartData = hourly.map((h) => ({
-    timeDecimal: h.hour,
-    chengdong_supply: h.chengdong_supply,
-    avg_water_level: h.avg_water_level,
-    max_valve_opening: h.max_valve_opening,
-  }));
-
   return (
     <div className="space-y-6">
-      {/* 日期与数据说明 */}
-      <div className="text-sm text-gray-500 flex flex-wrap gap-3 items-center">
+      {/* 日期 + 阀门切换摘要 */}
+      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
         <span>
-          分析日期：<span className="font-medium text-gray-700">{date}</span>
+          分析日期：<span className="font-medium text-gray-700">{date}</span>（昨日数据）
         </span>
+        {valve_events.length > 0 && (
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" />
+            共检测到 <span className="font-semibold text-gray-700 mx-0.5">{valve_events.length}</span> 次阀门切换
+          </span>
+        )}
       </div>
 
       {/* 图表 */}
@@ -160,7 +215,7 @@ export function ChengdongDispatchDashboard() {
           <ResponsiveContainer width="100%" height={500}>
             <ComposedChart
               data={chartData}
-              margin={{ top: 10, right: 70, bottom: 10, left: 80 }}
+              margin={{ top: 16, right: 70, bottom: 10, left: 80 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
 
@@ -174,6 +229,26 @@ export function ChengdongDispatchDashboard() {
                   fill={area.fill}
                   fillOpacity={0.25}
                   strokeOpacity={0}
+                />
+              ))}
+
+              {/* 阀门切换 ReferenceLine */}
+              {valve_events.map((ev, i) => (
+                <ReferenceLine
+                  key={`valve-${i}`}
+                  x={ev.timeDecimal}
+                  yAxisId="left"
+                  stroke={ev.delta > 0 ? '#16a34a' : '#dc2626'}
+                  strokeWidth={1.5}
+                  strokeDasharray="4 3"
+                  label={(props: any) => (
+                    <ValveSwitchLabel
+                      {...props}
+                      delta={ev.delta}
+                      toPct={ev.to_pct}
+                      index={i}
+                    />
+                  )}
                 />
               ))}
 
@@ -221,14 +296,6 @@ export function ChengdongDispatchDashboard() {
                 }}
               />
 
-              {/* 隐藏轴：阀门开度 0-100% */}
-              <YAxis
-                yAxisId="right-valve"
-                orientation="right"
-                domain={[0, 100]}
-                hide
-              />
-
               <Tooltip content={<CustomTooltip />} />
               <Legend
                 verticalAlign="top"
@@ -258,19 +325,6 @@ export function ChengdongDispatchDashboard() {
                 connectNulls={false}
                 type="monotone"
               />
-
-              {/* 阀门开度折线（小时最大値，隐藏轴） */}
-              <Line
-                yAxisId="right-valve"
-                dataKey="max_valve_opening"
-                name="阀门开度（最大）"
-                stroke="#8b5cf6"
-                strokeWidth={1.5}
-                strokeDasharray="5 3"
-                dot={{ r: 2, fill: '#8b5cf6' }}
-                connectNulls={false}
-                type="monotone"
-              />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -291,7 +345,53 @@ export function ChengdongDispatchDashboard() {
             {item.label}
           </span>
         ))}
+        <span className="flex items-center gap-1">
+          <span className="text-green-700 font-bold">▲</span><span className="text-green-700">绿线=阀门开大</span>
+          <span className="ml-2 text-red-700 font-bold">▼</span><span className="text-red-700">红线=阀门关小</span>
+        </span>
       </div>
+
+      {/* 阀门切换事件列表 */}
+      {valve_events.length > 0 && (
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">阀门切换记录</h4>
+          <div className="flex flex-wrap gap-2">
+            {valve_events.map((ev, i) => {
+              const isOpen = ev.delta > 0;
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs"
+                  style={{
+                    background: isOpen ? '#f0fdf4' : '#fef2f2',
+                    borderColor: isOpen ? '#86efac' : '#fca5a5',
+                  }}
+                >
+                  <span
+                    className="font-mono font-semibold"
+                    style={{ color: isOpen ? '#15803d' : '#b91c1c' }}
+                  >
+                    {ev.label}
+                  </span>
+                  <span className="text-gray-500">{ev.from_pct}%</span>
+                  <span style={{ color: isOpen ? '#15803d' : '#b91c1c' }}>
+                    {isOpen ? '→▲' : '→▼'}
+                  </span>
+                  <span
+                    className="font-semibold"
+                    style={{ color: isOpen ? '#15803d' : '#b91c1c' }}
+                  >
+                    {ev.to_pct}%
+                  </span>
+                  <span className="text-gray-400">
+                    ({isOpen ? '+' : ''}{ev.delta}%)
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* 每小时数据表格 */}
       <div className="overflow-x-auto rounded-lg border border-gray-200" style={{ maxHeight: 300, overflowY: 'auto' }}>
@@ -302,36 +402,59 @@ export function ChengdongDispatchDashboard() {
               <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold">时段</th>
               <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">供水量 (m³)</th>
               <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">水位均值 (m)</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">阀门开度最大値 (%)</th>
+              <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold">阀门切换</th>
             </tr>
           </thead>
           <tbody>
-            {hourly.map((row) => (
-              <tr
-                key={row.hour}
-                className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-              >
-                <td className="px-3 py-1.5 text-gray-800">{row.label}</td>
-                <td className="px-3 py-1.5 text-center">
-                  <span
-                    className="inline-block px-1.5 py-0.5 rounded text-xs font-medium"
-                    style={{
-                      background: PERIOD_BG[row.period],
-                      color: PERIOD_COLORS[row.period],
-                    }}
-                  >
-                    {row.period_name}
-                  </span>
-                </td>
-                <td className="px-3 py-1.5 text-right text-gray-800">{row.chengdong_supply.toLocaleString()}</td>
-                <td className="px-3 py-1.5 text-right text-gray-800">
-                  {row.avg_water_level != null ? row.avg_water_level.toFixed(2) : '-'}
-                </td>
-                <td className="px-3 py-1.5 text-right text-gray-800">
-                  {row.max_valve_opening != null ? row.max_valve_opening.toFixed(1) : '-'}
-                </td>
-              </tr>
-            ))}
+            {hourly.map((row) => {
+              // 找该小时内的阀门切换事件
+              const hourEvents = valve_events.filter(
+                (ev) => Math.floor(ev.timeDecimal) === row.hour
+              );
+              return (
+                <tr
+                  key={row.hour}
+                  className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                >
+                  <td className="px-3 py-1.5 text-gray-800">{row.label}</td>
+                  <td className="px-3 py-1.5 text-center">
+                    <span
+                      className="inline-block px-1.5 py-0.5 rounded text-xs font-medium"
+                      style={{
+                        background: PERIOD_BG[row.period],
+                        color: PERIOD_COLORS[row.period],
+                      }}
+                    >
+                      {row.period_name}
+                    </span>
+                  </td>
+                  <td className="px-3 py-1.5 text-right text-gray-800">{row.chengdong_supply.toLocaleString()}</td>
+                  <td className="px-3 py-1.5 text-right text-gray-800">
+                    {row.avg_water_level != null ? row.avg_water_level.toFixed(2) : '-'}
+                  </td>
+                  <td className="px-3 py-1.5">
+                    {hourEvents.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {hourEvents.map((ev, j) => (
+                          <span
+                            key={j}
+                            className="text-xs px-1 py-0.5 rounded font-medium"
+                            style={{
+                              color: ev.delta > 0 ? '#15803d' : '#b91c1c',
+                              background: ev.delta > 0 ? '#f0fdf4' : '#fef2f2',
+                            }}
+                          >
+                            {ev.label} {ev.from_pct}%{ev.delta > 0 ? '↑' : '↓'}{ev.to_pct}%
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

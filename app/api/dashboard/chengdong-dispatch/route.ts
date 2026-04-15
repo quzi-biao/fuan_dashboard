@@ -1,8 +1,9 @@
 /**
  * API: 福安城东水厂智能错峰调度运行分析
  * 返回指定日期（默认昨天）的：
- *   - hourly: 每小时平均供水量、平均清水池水位、平均阀门开度
- *   - minute: 每5分钟的清水池水位和阀门开度原始数据（用于高精度折线）
+ *   - hourly: 每小时平均供水量、平均清水池水位
+ *   - valve_events: 阀门开度切换事件（从1分钟数据中检测）
+ *   - level_data: 每5分钟的清水池水位折线数据
  */
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
@@ -20,6 +21,46 @@ function getPeriod(hour: number): 'valley' | 'flat' | 'peak' {
 
 const PERIOD_NAMES: Record<string, string> = { valley: '谷', flat: '平', peak: '峰' };
 
+/** 从1分钟粒度的阀门数据中检测切换事件 */
+function detectValveSwitches(
+  minuteRows: Array<{ hour: number; minute: number; valve: number }>
+) {
+  const data = minuteRows
+    .filter((r) => r.valve >= 0 && r.valve <= 100)
+    .sort((a, b) => a.hour * 60 + a.minute - (b.hour * 60 + b.minute));
+
+  if (data.length < 2) return [];
+
+  const THRESHOLD = 3; // % 变化阈值
+  const events: any[] = [];
+  let settledLevel = data[0].valve;
+
+  for (let i = 1; i < data.length; i++) {
+    const change = data[i].valve - settledLevel;
+    if (Math.abs(change) >= THRESHOLD) {
+      // 验证：下一个读数也维持新水平（避免瞬间噪声）
+      const nextVal = data[i + 1]?.valve ?? data[i].valve;
+      const nextChange = Math.abs(nextVal - data[i].valve);
+      if (nextChange < THRESHOLD) {
+        const newLevel = Math.round(data[i].valve);
+        const fromLevel = Math.round(settledLevel);
+        if (Math.abs(newLevel - fromLevel) >= THRESHOLD) {
+          events.push({
+            timeDecimal: data[i].hour + data[i].minute / 60,
+            label: `${data[i].hour}:${String(data[i].minute).padStart(2, '0')}`,
+            from_pct: fromLevel,
+            to_pct: newLevel,
+            delta: newLevel - fromLevel,
+          });
+        }
+        settledLevel = data[i].valve;
+      }
+    }
+  }
+
+  return events;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -27,7 +68,6 @@ export async function GET(request: Request) {
 
     const pool = getPool();
 
-    // 优先使用传入日期，否则自动查找最近7天内有数据的最新日期
     let targetDate = dateParam || null;
 
     if (!targetDate) {
@@ -55,14 +95,13 @@ export async function GET(request: Request) {
       }
     }
 
-    // 每小时聚合：供水量 + 清水池水位 + 阀门开度
+    // ① 每小时聚合：供水量 + 清水池水位
     const [hourlyRows] = await pool.query<any[]>(
       `
       SELECT
         HOUR(collect_time) as hour,
         AVG(CASE WHEN i_1102 > 0 AND i_1102 < 10000 THEN i_1102 END) as chengdong_avg_flow,
-        AVG(CASE WHEN i_1097 > 0.1 AND i_1097 < 20 THEN i_1097 END) as avg_water_level,
-        MAX(CASE WHEN i_1098 >= 0 AND i_1098 <= 100 THEN i_1098 END) as max_valve_opening
+        AVG(CASE WHEN i_1097 > 0.1 AND i_1097 < 20 THEN i_1097 END) as avg_water_level
       FROM fuan_data
       WHERE DATE(collect_time) = ?
       GROUP BY HOUR(collect_time)
@@ -71,24 +110,37 @@ export async function GET(request: Request) {
       [targetDate]
     );
 
-    // 每5分钟的原始清水池水位和阀门开度（高精度折线）
-    const [minuteRows] = await pool.query<any[]>(
+    // ② 每分钟的阀门开度（用于切换事件检测）
+    const [valveMinuteRows] = await pool.query<any[]>(
       `
       SELECT
         HOUR(collect_time)   AS hour,
         MINUTE(collect_time) AS minute,
-        i_1097 AS water_level,
-        i_1098 AS valve_opening
+        i_1098               AS valve
+      FROM fuan_data
+      WHERE DATE(collect_time) = ?
+        AND i_1098 IS NOT NULL
+        AND i_1098 BETWEEN 0 AND 100
+      ORDER BY collect_time
+      LIMIT 1500
+      `,
+      [targetDate]
+    );
+
+    // ③ 每5分钟清水池水位（用于折线图）
+    const [levelMinuteRows] = await pool.query<any[]>(
+      `
+      SELECT
+        HOUR(collect_time)   AS hour,
+        MINUTE(collect_time) AS minute,
+        i_1097               AS water_level
       FROM fuan_data
       WHERE DATE(collect_time) = ?
         AND MINUTE(collect_time) % 5 = 0
-        AND (
-          (i_1097 IS NOT NULL AND i_1097 BETWEEN 0.1 AND 20)
-          OR
-          (i_1098 IS NOT NULL AND i_1098 BETWEEN 0 AND 100)
-        )
+        AND i_1097 IS NOT NULL
+        AND i_1097 BETWEEN 0.1 AND 20
       ORDER BY collect_time
-      LIMIT 600
+      LIMIT 400
       `,
       [targetDate]
     );
@@ -104,31 +156,33 @@ export async function GET(request: Request) {
         label: `${hour}:00`,
         chengdong_supply: row ? Math.round(row.chengdong_avg_flow || 0) : 0,
         avg_water_level: row && row.avg_water_level ? +Number(row.avg_water_level).toFixed(2) : null,
-        max_valve_opening: row && row.max_valve_opening != null ? +Number(row.max_valve_opening).toFixed(1) : null,
         period,
         period_name: PERIOD_NAMES[period],
       };
     });
 
-    const minuteData = (minuteRows as any[]).map((row) => ({
-      // timeDecimal: 分钟位置用于连续折线（0.0 ~ 23.999）
-      timeDecimal: Number(row.hour) + Number(row.minute) / 60,
-      label: `${row.hour}:${String(row.minute).padStart(2, '0')}`,
-      water_level:
-        row.water_level != null && row.water_level > 0.1
-          ? +Number(row.water_level).toFixed(2)
-          : null,
-      valve_opening:
-        row.valve_opening != null && row.valve_opening >= 0
-          ? +Number(row.valve_opening).toFixed(1)
-          : null,
+    // 检测阀门切换事件
+    const valveEvents = detectValveSwitches(
+      (valveMinuteRows as any[]).map((r) => ({
+        hour: Number(r.hour),
+        minute: Number(r.minute),
+        valve: Number(r.valve),
+      }))
+    );
+
+    // 每5分钟水位折线
+    const levelData = (levelMinuteRows as any[]).map((r) => ({
+      timeDecimal: Number(r.hour) + Number(r.minute) / 60,
+      label: `${r.hour}:${String(r.minute).padStart(2, '0')}`,
+      water_level: +Number(r.water_level).toFixed(2),
     }));
 
     return NextResponse.json({
       success: true,
       date: targetDate,
       hourly: hourlyData,
-      minute: minuteData,
+      valve_events: valveEvents,
+      level_data: levelData,
     });
   } catch (error) {
     console.error('城东调度数据查询失败:', error);
