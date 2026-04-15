@@ -31,7 +31,7 @@ function detectValveSwitches(
 
   if (data.length < 2) return [];
 
-  const THRESHOLD = 3; // % 变化阈值
+  const THRESHOLD = 2; // % 变化阈值
   const events: any[] = [];
   let settledLevel = data[0].valve;
 

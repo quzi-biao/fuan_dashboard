@@ -180,14 +180,18 @@ export function ChengdongDispatchDashboard({ date: selectedDate }: { date?: stri
   // chartData: 24小时数据，带阀门步进位置
   const chartData = useMemo(() => {
     if (!data) return [];
-    // 根据 initial_valve_pct + valve_events 重建每小时的阀门开度（步进）
     const { valve_events, initial_valve_pct, hourly } = data;
+    // valve_events[0].from_pct 是 detectValveSwitches 内部跳过凌晨噪声后的真实起始稳定值
+    // 比 initial_valve_pct（数据库第一条原始读数）更可靠
+    const effectiveInitial = valve_events.length > 0
+      ? valve_events[0].from_pct
+      : initial_valve_pct;
     return hourly.map((h) => {
       // 该小时结束前最后一次切换的 to_pct
       const lastEvent = [...valve_events]
         .filter((ev) => ev.timeDecimal <= h.hour + 0.999)
         .pop();
-      const valvePos = lastEvent ? lastEvent.to_pct : initial_valve_pct;
+      const valvePos = lastEvent ? lastEvent.to_pct : effectiveInitial;
       return {
         timeDecimal: h.hour,
         chengdong_supply: h.chengdong_supply,
