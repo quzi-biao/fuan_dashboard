@@ -12,7 +12,7 @@ import { EfficiencyAnalysisTable } from '@/components/EfficiencyAnalysisTable';
 import { FlowAnalysisCharts } from '@/components/FlowAnalysisCharts';
 import { EfficiencyAnalysisCharts } from '@/components/EfficiencyAnalysisCharts';
 import { CustomDatePicker } from '@/components/CustomDatePicker';
-import { Download, BarChart3, Table, Search, TrendingUp, Lightbulb, PieChart } from 'lucide-react';
+import { Download, BarChart3, Table, Search, TrendingUp, Lightbulb, PieChart, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { EnergySavingModal } from '@/components/EnergySavingModal';
 import { FlowPeriodChartModal } from '@/components/FlowPeriodChartModal';
@@ -270,6 +270,14 @@ export default function Home() {
           >
             <TrendingUp size={20} />
             <span className="hidden sm:inline">关联分析</span>
+          </Link>
+          <Link
+            href="/valve-settings"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition"
+            title="时段开度设置"
+          >
+            <Settings size={20} />
+            <span className="hidden sm:inline">时段开度设置</span>
           </Link>
         </div>
       </div>
