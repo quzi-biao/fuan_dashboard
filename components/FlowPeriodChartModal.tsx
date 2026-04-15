@@ -28,9 +28,9 @@ const C = {
 };
 
 const LEGEND_LABELS: Record<string, string> = {
-  cd_valley: '城东·谷', cd_flat: '城东·平', cd_peak: '城东·峰',
-  yh_valley: '岩湖·谷', yh_flat: '岩湖·平', yh_peak: '岩湖·峰',
-  elec_valley: '电量·谷', elec_flat: '电量·平', elec_peak: '电量·峰',
+  cd_valley:   '城东流量·谷', cd_flat:   '城东流量·平', cd_peak:   '城东流量·峰',
+  yh_valley:   '岩湖流量·谷', yh_flat:   '岩湖流量·平', yh_peak:   '岩湖流量·峰',
+  elec_valley: '岩湖电量·谷', elec_flat: '岩湖电量·平', elec_peak: '岩湖电量·峰',
 };
 
 export function FlowPeriodChartModal({ data, onClose }: Props) {
