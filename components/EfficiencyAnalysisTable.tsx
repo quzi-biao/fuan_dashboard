@@ -13,6 +13,7 @@ interface EfficiencyAnalysisData {
   daily_power_consumption: number;
   power_per_1000t: number;
   power_per_pressure: number;
+  pump_efficiency?: number;
 }
 
 interface Props {
@@ -53,6 +54,9 @@ export function EfficiencyAnalysisTable({ data }: Props) {
             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
               能效比
             </th>
+            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              泵组综合效率(%)
+            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
@@ -81,6 +85,11 @@ export function EfficiencyAnalysisTable({ data }: Props) {
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-medium text-gray-900">
                 {item.power_per_pressure > 0 ? item.power_per_pressure.toFixed(3) : '-'}
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-semibold text-blue-700">
+                {item.pump_efficiency != null && item.pump_efficiency > 0
+                  ? `${item.pump_efficiency.toFixed(2)}%`
+                  : '-'}
               </td>
             </tr>
           ))}

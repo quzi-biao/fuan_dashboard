@@ -71,6 +71,7 @@ export interface EfficiencyAnalysisResult {
   daily_power_consumption: number;
   power_per_1000t: number;
   power_per_pressure: number;
+  pump_efficiency: number;  // 泵组综合效率(%) = 0.278 × 压力(MPa) × power_per_1000t / 1000
 }
 
 /**
@@ -310,6 +311,10 @@ export function analyzeEfficiency(data: FlowDataRecord[]): EfficiencyAnalysisRes
         // Python公式: i_1072_adjusted / i_1073_adjusted * 1000 (水量/电量)
         const powerPer1000t = dailyPower > 0 ? (dailyWater / dailyPower * 1000) : 0;
         const powerPerPressure = pressureWeightedAvg > 0 ? (powerPer1000t / pressureWeightedAvg) : 0;
+        // 泵组综合效率(%) = 0.278 × 压力(MPa) × 1000 / dailyPowerPerKt
+        // dailyPowerPerKt = daily_power × 1000 / daily_water = 1e6 / power_per_1000t
+        // → pump_efficiency = 0.278 × pressure × power_per_1000t / 1000
+        const pumpEfficiency = powerPer1000t > 0 ? 0.278 * pressureWeightedAvg * powerPer1000t / 1000 : 0;
         
         results.push({
           date: nextDate,
@@ -320,7 +325,8 @@ export function analyzeEfficiency(data: FlowDataRecord[]): EfficiencyAnalysisRes
           daily_water_supply: dailyWater,
           daily_power_consumption: dailyPower,
           power_per_1000t: powerPer1000t,
-          power_per_pressure: powerPerPressure
+          power_per_pressure: powerPerPressure,
+          pump_efficiency: pumpEfficiency,
         });
       }
     }
