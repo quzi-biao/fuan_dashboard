@@ -223,7 +223,7 @@ export function JointSupplyDashboard({ date }: { date?: string }) {
                 name="城东送水量"
                 stackId="supply"
                 fill="#4f86c6"
-                barSize={28}
+                barSize={20}
                 radius={[0, 0, 0, 0]}
               />
               <Bar

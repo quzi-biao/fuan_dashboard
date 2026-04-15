@@ -144,7 +144,7 @@ function CustomTooltip({ active, payload, label }: any) {
   );
 }
 
-export function ChengdongDispatchDashboard({ date }: { date?: string }) {
+export function ChengdongDispatchDashboard({ date: selectedDate }: { date?: string }) {
   const [data, setData] = useState<ApiData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -153,7 +153,7 @@ export function ChengdongDispatchDashboard({ date }: { date?: string }) {
     setLoading(true);
     setError(null);
     setData(null);
-    fetch(`/api/dashboard/chengdong-dispatch${date ? `?date=${date}` : ''}`)
+    fetch(`/api/dashboard/chengdong-dispatch${selectedDate ? `?date=${selectedDate}` : ''}`)
       .then((r) => r.json())
       .then((json) => {
         if (json.success) setData(json);
@@ -161,7 +161,7 @@ export function ChengdongDispatchDashboard({ date }: { date?: string }) {
       })
       .catch(() => setError('网络请求失败'))
       .finally(() => setLoading(false));
-  }, [date]);
+  }, [selectedDate]);
 
   // chartData: 24小时数据，带阀门步进位置
   const chartData = useMemo(() => {
