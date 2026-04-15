@@ -225,13 +225,15 @@ export async function GET(request: Request) {
       }))
     );
 
-    // 当天首个有效阀门读数（用于前端重建步进曲线的起始值）
+    // 当天首个稳定阀门读数（跳过 0:00~0:02 的初始化噪声，与 detectValveSwitches 逻辑一致）
     const sortedValveRows = (valveMinuteRows as any[])
       .filter((r) => Number(r.valve) >= 0 && Number(r.valve) <= 100)
       .sort((a, b) => Number(a.hour) * 60 + Number(a.minute) - (Number(b.hour) * 60 + Number(b.minute)));
-    const initialValvePct = sortedValveRows.length > 0
-      ? Math.round(Number(sortedValveRows[0].valve))
-      : null;
+    // 优先取 0:03 以后的第一条，不存在则退到最早一条
+    const firstStable = sortedValveRows.find(
+      (r) => !(Number(r.hour) === 0 && Number(r.minute) < 3)
+    ) ?? sortedValveRows[0];
+    const initialValvePct = firstStable ? Math.round(Number(firstStable.valve)) : null;
 
     // 每5分钟水位折线
     const levelData = (levelMinuteRows as any[]).map((r) => ({
