@@ -17,7 +17,7 @@ interface HourlyData {
   label: string;
   chengdong_supply: number;
   avg_water_level: number | null;
-  avg_valve_opening: number | null;
+  max_valve_opening: number | null;
   period: string;
   period_name: string;
 }
@@ -77,7 +77,7 @@ function CustomTooltip({ active, payload, label }: any) {
         let color = p.stroke || p.fill;
         if (p.dataKey === 'chengdong_supply') unit = ' m³';
         if (p.dataKey === 'water_level') unit = ' m';
-        if (p.dataKey === 'valve_opening') unit = ' %';
+        if (p.dataKey === 'avg_valve_opening' || p.dataKey === 'max_valve_opening') unit = ' %';
         return (
           <div key={p.dataKey} className="flex items-center gap-2 mt-1" style={{ color }}>
             <span className="w-3 h-3 rounded-sm inline-block flex-shrink-0" style={{ background: color }} />
@@ -142,7 +142,7 @@ export function ChengdongDispatchDashboard() {
     timeDecimal: h.hour,
     chengdong_supply: h.chengdong_supply,
     avg_water_level: h.avg_water_level,
-    avg_valve_opening: h.avg_valve_opening,
+    max_valve_opening: h.max_valve_opening,
   }));
 
   return (
@@ -243,7 +243,7 @@ export function ChengdongDispatchDashboard() {
                 name="城东供水量"
                 fill="#4f86c6"
                 fillOpacity={0.85}
-                barSize={50}
+                barSize={20}
                 radius={[2, 2, 0, 0]}
               />
 
@@ -259,11 +259,11 @@ export function ChengdongDispatchDashboard() {
                 type="monotone"
               />
 
-              {/* 阀门开度折线（小时均值，隐藏轴） */}
+              {/* 阀门开度折线（小时最大値，隐藏轴） */}
               <Line
                 yAxisId="right-valve"
-                dataKey="avg_valve_opening"
-                name="阀门开度"
+                dataKey="max_valve_opening"
+                name="阀门开度（最大）"
                 stroke="#8b5cf6"
                 strokeWidth={1.5}
                 strokeDasharray="5 3"
@@ -302,7 +302,7 @@ export function ChengdongDispatchDashboard() {
               <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold">时段</th>
               <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">供水量 (m³)</th>
               <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">水位均值 (m)</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">阀门开度均值 (%)</th>
+              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">阀门开度最大値 (%)</th>
             </tr>
           </thead>
           <tbody>
@@ -328,7 +328,7 @@ export function ChengdongDispatchDashboard() {
                   {row.avg_water_level != null ? row.avg_water_level.toFixed(2) : '-'}
                 </td>
                 <td className="px-3 py-1.5 text-right text-gray-800">
-                  {row.avg_valve_opening != null ? row.avg_valve_opening.toFixed(1) : '-'}
+                  {row.max_valve_opening != null ? row.max_valve_opening.toFixed(1) : '-'}
                 </td>
               </tr>
             ))}
