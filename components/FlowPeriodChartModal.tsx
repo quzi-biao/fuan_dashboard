@@ -28,8 +28,8 @@ const C = {
 };
 
 const LEGEND_LABELS: Record<string, string> = {
-  cd_valley:   '城东流量·谷', cd_flat:   '城东流量·平', cd_peak:   '城东流量·峰',
-  yh_valley:   '岩湖流量·谷', yh_flat:   '岩湖流量·平', yh_peak:   '岩湖流量·峰',
+  cd_valley: '城东流量·谷', cd_flat: '城东流量·平', cd_peak: '城东流量·峰',
+  yh_valley: '岩湖流量·谷', yh_flat: '岩湖流量·平', yh_peak: '岩湖流量·峰',
   elec_valley: '岩湖电量·谷', elec_flat: '岩湖电量·平', elec_peak: '岩湖电量·峰',
 };
 
@@ -46,11 +46,11 @@ export function FlowPeriodChartModal({ data, onClose }: Props) {
       cd_flat: +(f?.chengdong_cumulative_flow ?? 0).toFixed(0),
       cd_peak: +(k?.chengdong_cumulative_flow ?? 0).toFixed(0),
       yh_valley: +(v?.yanhu_electricity ?? 0).toFixed(0),
-      yh_flat:   +(f?.yanhu_electricity ?? 0).toFixed(0),
-      yh_peak:   +(k?.yanhu_electricity ?? 0).toFixed(0),
+      yh_flat: +(f?.yanhu_electricity ?? 0).toFixed(0),
+      yh_peak: +(k?.yanhu_electricity ?? 0).toFixed(0),
       elec_valley: +(v?.yanhu_cumulative_flow ?? 0).toFixed(0),
-      elec_flat:   +(f?.yanhu_cumulative_flow ?? 0).toFixed(0),
-      elec_peak:   +(k?.yanhu_cumulative_flow ?? 0).toFixed(0),
+      elec_flat: +(f?.yanhu_cumulative_flow ?? 0).toFixed(0),
+      elec_peak: +(k?.yanhu_cumulative_flow ?? 0).toFixed(0),
     };
   });
 
