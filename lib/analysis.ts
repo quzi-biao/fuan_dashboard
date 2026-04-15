@@ -314,7 +314,7 @@ export function analyzeEfficiency(data: FlowDataRecord[]): EfficiencyAnalysisRes
         // 泵组综合效率(%) = (0.278 × 压力(MPa) × 1000) / dailyPowerPerKt
         // dailyPowerPerKt [kWh/kt] = power_per_1000t（analysis.ts中字段含义一致）
         // 与 EnergySavingModal: pumpEfficiency = (0.278 × avg_pressure × 1000) / dailyPowerPerKt
-        const pumpEfficiency = powerPer1000t > 0 ? (0.278 * pressureWeightedAvg * 1000) / powerPer1000t : 0;
+        const pumpEfficiency = powerPer1000t > 0 ? (0.278 * pressureWeightedAvg * 1000) / powerPer1000t * 100 : 0;
         
         results.push({
           date: nextDate,
