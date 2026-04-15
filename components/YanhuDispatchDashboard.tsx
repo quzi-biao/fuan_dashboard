@@ -154,7 +154,7 @@ export function YanhuDispatchDashboard({ date: selectedDate }: { date?: string }
             {[
               { label: '日送水量', value: summary.total_flow_m3.toLocaleString(), unit: 'm³', color: '#4f86c6' },
               { label: '日耗电量', value: summary.total_power_kwh.toFixed(1), unit: 'kWh', color: '#8b5cf6' },
-              { label: '日均压力', value: summary.avg_pressure_mpa.toFixed(3), unit: 'MPa', color: '#f97316' },
+              { label: '日均压力', value: summary.avg_pressure_mpa.toFixed(4), unit: 'MPa', color: '#f97316' },
               { label: '日千吨水电耗', value: summary.daily_power_1000t?.toFixed(2) ?? '—', unit: 'kWh/kt', color: '#6b7280' },
             ].map((item) => (
               <div
@@ -355,7 +355,7 @@ export function YanhuDispatchDashboard({ date: selectedDate }: { date?: string }
               <td className="sticky left-0 z-10 bg-gray-50 border-r border-gray-200 px-3 py-1.5 font-medium text-gray-700">送水压力 (MPa)</td>
               {hourly.map((h) => (
                 <td key={h.hour} className="px-2 py-1.5 text-center text-gray-800">
-                  {h.pressure_mpa > 0 ? h.pressure_mpa.toFixed(3) : <span className="text-gray-300">—</span>}
+                  {h.pressure_mpa > 0 ? h.pressure_mpa.toFixed(4) : <span className="text-gray-300">—</span>}
                 </td>
               ))}
             </tr>
