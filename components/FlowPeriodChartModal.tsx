@@ -91,6 +91,7 @@ export function FlowPeriodChartModal({ data, onClose }: Props) {
                 <YAxis
                   yAxisId="left"
                   orientation="left"
+                  tickCount={6}
                   tick={{ fontSize: 11, fill: '#6b7280' }}
                   axisLine={false}
                   tickLine={false}
@@ -100,6 +101,7 @@ export function FlowPeriodChartModal({ data, onClose }: Props) {
                 <YAxis
                   yAxisId="right"
                   orientation="right"
+                  tickCount={6}
                   tick={{ fontSize: 11, fill: '#2563eb' }}
                   axisLine={false}
                   tickLine={false}
