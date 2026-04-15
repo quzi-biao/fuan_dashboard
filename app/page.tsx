@@ -15,6 +15,7 @@ import { CustomDatePicker } from '@/components/CustomDatePicker';
 import { Download, BarChart3, Table, Search, TrendingUp, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import { EnergySavingModal } from '@/components/EnergySavingModal';
+import { DashboardPanel } from '@/components/DashboardPanel';
 
 export default function Home() {
   const [latestData, setLatestData] = useState<any>(null);
@@ -269,6 +270,9 @@ export default function Home() {
           </Link>
         </div>
       </div>
+
+      {/* 运行看板（分析前一天数据） */}
+      <DashboardPanel />
 
       {/* 实时数据面板 */}
       {latestData && latestData.data && (
