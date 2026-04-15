@@ -3,7 +3,7 @@
 import { X } from 'lucide-react';
 import {
   ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, ResponsiveContainer,
+  Legend, ResponsiveContainer, LabelList
 } from 'recharts';
 
 interface FlowRecord {
@@ -45,12 +45,22 @@ export function FlowPeriodChartModal({ data, onClose }: Props) {
       cd_valley: +(v?.chengdong_cumulative_flow ?? 0).toFixed(0),
       cd_flat: +(f?.chengdong_cumulative_flow ?? 0).toFixed(0),
       cd_peak: +(k?.chengdong_cumulative_flow ?? 0).toFixed(0),
-      yh_valley: +(v?.yanhu_cumulative_flow ?? 0).toFixed(0),
+      yh_valley: +(v?.yanhu_electricity ?? 0).toFixed(0),
       yh_flat: +(f?.yanhu_electricity ?? 0).toFixed(0),
       yh_peak: +(k?.yanhu_electricity ?? 0).toFixed(0),
       elec_valley: +(v?.yanhu_cumulative_flow ?? 0).toFixed(0),
       elec_flat: +(f?.yanhu_cumulative_flow ?? 0).toFixed(0),
       elec_peak: +(k?.yanhu_cumulative_flow ?? 0).toFixed(0),
+    };
+  }).map(d => {
+    // 追加顶部的占比百分比（占总水量的比例）
+    const cdTotal = d.cd_valley + d.cd_flat + d.cd_peak;
+    const yhTotal = d.yh_valley + d.yh_flat + d.yh_peak;
+    const totalFlow = cdTotal + yhTotal || 1;
+    return {
+      ...d,
+      cd_pct: cdTotal > 0 ? (cdTotal / totalFlow * 100).toFixed(0) + '%' : '',
+      yh_pct: yhTotal > 0 ? (yhTotal / totalFlow * 100).toFixed(0) + '%' : '',
     };
   });
 
@@ -138,12 +148,16 @@ export function FlowPeriodChartModal({ data, onClose }: Props) {
                 {/* 城东流量（谷→平→峰 叠加） */}
                 <Bar yAxisId="left" dataKey="cd_valley" stackId="cd" fill={C.cd.valley} name="cd_valley" radius={[0, 0, 0, 0]} />
                 <Bar yAxisId="left" dataKey="cd_flat" stackId="cd" fill={C.cd.flat} name="cd_flat" />
-                <Bar yAxisId="left" dataKey="cd_peak" stackId="cd" fill={C.cd.peak} name="cd_peak" radius={[3, 3, 0, 0]} />
+                <Bar yAxisId="left" dataKey="cd_peak" stackId="cd" fill={C.cd.peak} name="cd_peak" radius={[3, 3, 0, 0]}>
+                  <LabelList dataKey="cd_pct" position="top" fill="#6b7280" fontSize={11} offset={6} />
+                </Bar>
 
                 {/* 岩湖流量 */}
                 <Bar yAxisId="left" dataKey="yh_valley" stackId="yh" fill={C.yh.valley} name="yh_valley" />
                 <Bar yAxisId="left" dataKey="yh_flat" stackId="yh" fill={C.yh.flat} name="yh_flat" />
-                <Bar yAxisId="left" dataKey="yh_peak" stackId="yh" fill={C.yh.peak} name="yh_peak" radius={[3, 3, 0, 0]} />
+                <Bar yAxisId="left" dataKey="yh_peak" stackId="yh" fill={C.yh.peak} name="yh_peak" radius={[3, 3, 0, 0]}>
+                  <LabelList dataKey="yh_pct" position="top" fill="#6b7280" fontSize={11} offset={6} />
+                </Bar>
 
                 {/* 岩湖电量（右轴，淡色） */}
                 <Bar yAxisId="right" dataKey="elec_valley" stackId="elec" fill={C.elec.valley} name="elec_valley" />
