@@ -27,6 +27,14 @@ interface HourlyData {
   aux_pump: '启' | '停';
 }
 
+interface Summary {
+  total_flow_m3: number;
+  total_power_kwh: number;
+  avg_pressure_mpa: number;
+  daily_power_1000t: number | null;
+  avg_pump_efficiency: number | null;
+}
+
 const PERIOD_BG: Record<string, string> = {
   valley: '#fef9c3',
   flat: '#dcfce7',
@@ -94,6 +102,7 @@ function PumpStatus({ status }: { status: '启' | '停' }) {
 
 export function YanhuDispatchDashboard({ date: selectedDate }: { date?: string }) {
   const [hourly, setHourly] = useState<HourlyData[]>([]);
+  const [summary, setSummary] = useState<Summary | null>(null);
   const [date, setDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +115,7 @@ export function YanhuDispatchDashboard({ date: selectedDate }: { date?: string }
       .then((json) => {
         if (json.success) {
           setHourly(json.hourly);
+          setSummary(json.summary ?? null);
           setDate(json.date);
         } else {
           setError(json.error || '加载失败');
@@ -135,9 +145,32 @@ export function YanhuDispatchDashboard({ date: selectedDate }: { date?: string }
 
   return (
     <div className="space-y-6">
-      {/* 日期 */}
-      <div className="text-sm text-gray-500">
-        分析日期：<span className="font-medium text-gray-700">{date}</span>
+      {/* 日期 + 汇总卡片 */}
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm text-gray-500">
+          分析日期：<span className="font-medium text-gray-700">{date}</span>
+        </span>
+        {summary && (
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: '日送水量', value: summary.total_flow_m3.toLocaleString(), unit: 'm³', color: '#4f86c6' },
+              { label: '日耗电量', value: summary.total_power_kwh.toFixed(1), unit: 'kWh', color: '#8b5cf6' },
+              { label: '日均压力', value: summary.avg_pressure_mpa.toFixed(3), unit: 'MPa', color: '#f97316' },
+              { label: '日千吨水电耗', value: summary.daily_power_1000t?.toFixed(2) ?? '—', unit: 'kWh/kt', color: '#6b7280' },
+              { label: '日均泵效', value: summary.avg_pump_efficiency != null ? `${summary.avg_pump_efficiency.toFixed(2)}%` : '—', unit: '', color: '#10b981' },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs"
+                style={{ borderColor: item.color + '40', background: item.color + '0d' }}
+              >
+                <span className="text-gray-500">{item.label}</span>
+                <span className="font-bold" style={{ color: item.color }}>{item.value}</span>
+                {item.unit && <span className="text-gray-400">{item.unit}</span>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 图表 */}
@@ -382,6 +415,20 @@ export function YanhuDispatchDashboard({ date: selectedDate }: { date?: string }
                 </td>
               ))}
             </tr>
+            {/* 合计行 */}
+            {summary && (
+              <tr className="border-t-2 border-gray-300 bg-blue-50 font-semibold">
+                <td className="sticky left-0 z-10 bg-blue-50 border-r border-gray-200 px-3 py-1.5 text-gray-700">合计 / 均值</td>
+                {/* 合计行跨所有小时列，只展示一个汇总单元格 */}
+                <td colSpan={24} className="px-3 py-1.5 text-xs text-gray-600">
+                  送水量 <strong className="text-blue-700">{summary.total_flow_m3.toLocaleString()} m³</strong>
+                  &ensp;·&ensp;耗电量 <strong className="text-purple-700">{summary.total_power_kwh.toFixed(1)} kWh</strong>
+                  &ensp;·&ensp;均压 <strong className="text-orange-600">{summary.avg_pressure_mpa.toFixed(3)} MPa</strong>
+                  &ensp;·&ensp;千吨水电耗 <strong className="text-gray-700">{summary.daily_power_1000t?.toFixed(2) ?? '—'} kWh/kt</strong>
+                  &ensp;·&ensp;均泵效 <strong className="text-emerald-600">{summary.avg_pump_efficiency != null ? `${summary.avg_pump_efficiency.toFixed(2)}%` : '—'}</strong>
+                </td>
+              </tr>
+            )}
             {/* 辅泵 */}
             <tr>
               <td className="sticky left-0 z-10 bg-white border-r border-gray-200 px-3 py-1.5 font-medium text-gray-700">辅泵 (i_1051)</td>

@@ -100,7 +100,30 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ success: true, date: targetDate, hourly: hourlyData });
+    // 日汇总
+    const totalFlow    = hourlyData.reduce((s, h) => s + h.flow_m3, 0);
+    const totalPower   = hourlyData.reduce((s, h) => s + h.power_kwh, 0);
+    const pressureHours = hourlyData.filter(h => h.pressure_mpa > 0);
+    const avgPressure  = pressureHours.length > 0
+      ? pressureHours.reduce((s, h) => s + h.pressure_mpa, 0) / pressureHours.length
+      : 0;
+    // 日千吨水电耗 = 总耗电 / (总送水 / 1000)
+    const dailyPower1000t = totalFlow > 0 && totalPower > 0 ? totalPower * 1000 / totalFlow : null;
+    // 日均泵效
+    const effHours = hourlyData.filter(h => h.pump_efficiency != null && h.pump_efficiency > 0);
+    const avgPumpEff = effHours.length > 0
+      ? effHours.reduce((s, h) => s + (h.pump_efficiency ?? 0), 0) / effHours.length
+      : null;
+
+    const summary = {
+      total_flow_m3:       +totalFlow.toFixed(0),
+      total_power_kwh:     +totalPower.toFixed(1),
+      avg_pressure_mpa:    +avgPressure.toFixed(4),
+      daily_power_1000t:   dailyPower1000t ? +dailyPower1000t.toFixed(2) : null,
+      avg_pump_efficiency: avgPumpEff ? +avgPumpEff.toFixed(2) : null,
+    };
+
+    return NextResponse.json({ success: true, date: targetDate, hourly: hourlyData, summary });
   } catch (error) {
     console.error('岩湖调度数据查询失败:', error);
     return NextResponse.json({ error: '查询失败' }, { status: 500 });
