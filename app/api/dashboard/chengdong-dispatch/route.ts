@@ -35,12 +35,12 @@ function detectValveSwitches(
   const events: any[] = [];
   let settledLevel = data[0].valve;
 
-    for (let i = 1; i < data.length; i++) {
-      // 过滤凌晨 0 点前 3 分钟的初始化假信号
-      if (data[i].hour === 0 && data[i].minute < 3) {
-        settledLevel = data[i].valve;
-        continue;
-      }
+  for (let i = 1; i < data.length; i++) {
+    // 过滤凌晨 0 点前 3 分钟的初始化假信号
+    if (data[i].hour === 0 && data[i].minute < 3) {
+      settledLevel = data[i].valve;
+      continue;
+    }
     const change = data[i].valve - settledLevel;
     if (Math.abs(change) >= THRESHOLD) {
       // 验证：下一个读数也维持新水平（避免瞬间噪声）
@@ -153,7 +153,7 @@ export async function GET(request: Request) {
       `
       SELECT
         HOUR(collect_time) as hour,
-        AVG(CASE WHEN i_1102 >= 0 AND i_1102 < 10000 THEN i_1102 END) as chengdong_avg_flow,
+        AVG(CASE WHEN i_1102 > 0 AND i_1102 < 10000 THEN i_1102 END) as chengdong_avg_flow,
         AVG(CASE WHEN i_1097 > 0.1 AND i_1097 < 20 THEN i_1097 END) as avg_water_level,
         MAX(CASE WHEN i_1098 >= 0 AND i_1098 <= 100 THEN i_1098 END) as max_valve_opening
       FROM fuan_data

@@ -1,9 +1,12 @@
 /**
  * API: 福安城东-岩湖联合供水运行监控
- * 返回指定日期（默认昨天）的分时段（小时）供水数据
+ * - 小时图表数据：SQL 分钟均值 × 1小时
+ * - 时段汇总卡片：直接调用 analyzeFlowByElectricityPeriod（与流量分时段分析一致）
+ *   岩湖用 i_1072 水表差值方法，精度更高
  */
 import { NextResponse } from 'next/server';
-import { getPool } from '@/lib/db';
+import { getPool, getDataByDateRange } from '@/lib/db';
+import { analyzeFlowByElectricityPeriod } from '@/lib/analysis';
 
 function getPeriod(hour: number): 'valley' | 'flat' | 'peak' {
   if (hour < 8) return 'valley';
@@ -29,7 +32,6 @@ export async function GET(request: Request) {
     let targetDate = dateParam || null;
 
     if (!targetDate) {
-      // 查找最近7天内有实际供水数据的最新日期
       const [recentDates] = await pool.query<any[]>(
         `
         SELECT DATE(collect_time) as d
@@ -41,7 +43,6 @@ export async function GET(request: Request) {
         LIMIT 2
         `
       );
-      // 取倒数第二天（最新完整数据日，排除今天可能仍在写入的数据）
       if (recentDates.length >= 2) {
         targetDate = recentDates[1].d instanceof Date
           ? recentDates[1].d.toISOString().split('T')[0]
@@ -55,13 +56,13 @@ export async function GET(request: Request) {
       }
     }
 
+    // ① 每小时聚合（用于图表柱状图）
     const [rows] = await pool.query<any[]>(
       `
       SELECT
         HOUR(collect_time) as hour,
-        AVG(CASE WHEN i_1102 >= 0 AND i_1102 < 10000 THEN i_1102 END) as chengdong_avg_flow,
-        AVG(CASE WHEN i_1034 >= 0 AND i_1034 < 10000 THEN i_1034 END) as yanhu_avg_flow,
-        COUNT(*) as cnt
+        AVG(CASE WHEN i_1102 > 0 AND i_1102 < 10000 THEN i_1102 END) as chengdong_avg_flow,
+        AVG(CASE WHEN i_1034 > 0 AND i_1034 < 10000 THEN i_1034 END) as yanhu_avg_flow
       FROM fuan_data
       WHERE DATE(collect_time) = ?
       GROUP BY HOUR(collect_time)
@@ -73,7 +74,6 @@ export async function GET(request: Request) {
     const rowMap: Record<number, any> = {};
     (rows as any[]).forEach((r) => { rowMap[r.hour] = r; });
 
-    // 补全24小时，缺失小时填0
     const hourlyData = Array.from({ length: 24 }, (_, hour) => {
       const row = rowMap[hour];
       const period = getPeriod(hour);
@@ -90,15 +90,29 @@ export async function GET(request: Request) {
       };
     });
 
-    // 按时段汇总
+    // ② 时段汇总卡片：使用 analyzeFlowByElectricityPeriod（与流量分时段分析接口一致）
+    //    岩湖使用 i_1072 水表差值法，精度远高于流量均值法
+    const rawData = await getDataByDateRange(targetDate, targetDate);
+    const flowRecords = rawData.map((r) => ({
+      collect_time: new Date(r.collect_time),
+      chengdong_flow: Number(r.chengdong_flow) || 0,
+      yanhu_flow: Number(r.yanhu_flow) || 0,
+      yanhu_pressure: r.yanhu_pressure != null ? Number(r.yanhu_pressure) : undefined,
+      yanhu_daily_water: r.yanhu_daily_water != null ? Number(r.yanhu_daily_water) : undefined,
+      yanhu_daily_power: r.yanhu_daily_power != null ? Number(r.yanhu_daily_power) : undefined,
+    }));
+    const analysisResults = analyzeFlowByElectricityPeriod(flowRecords);
+
     const periodSummary = (['valley', 'flat', 'peak'] as const).map((period) => {
-      const subset = hourlyData.filter((d) => d.period === period);
+      const res = analysisResults.find((r) => r.period === period);
+      const chengdong = res ? Math.round(res.chengdong_cumulative_flow) : 0;
+      const yanhu = res ? Math.round(res.yanhu_cumulative_flow) : 0;
       return {
         period,
         period_name: PERIOD_NAMES[period],
-        chengdong_total: subset.reduce((s, d) => s + d.chengdong_supply, 0),
-        yanhu_total: subset.reduce((s, d) => s + d.yanhu_supply, 0),
-        total: subset.reduce((s, d) => s + d.total_supply, 0),
+        chengdong_total: chengdong,
+        yanhu_total: yanhu,
+        total: chengdong + yanhu,
       };
     });
 

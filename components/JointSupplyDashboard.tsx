@@ -157,7 +157,7 @@ export function JointSupplyDashboard({ date: selectedDate }: { date?: string }) 
               <div>城东：<span className="font-semibold">{ps.chengdong_total.toLocaleString()}</span></div>
               <div>岩湖：<span className="font-semibold">{ps.yanhu_total.toLocaleString()}</span></div>
               <div className="pt-1 font-bold text-gray-800 border-t border-gray-200">
-                合计：{ps.total.toLocaleString()} m³/h
+              合计：{ps.total.toLocaleString()} m³
               </div>
             </div>
           </div>
