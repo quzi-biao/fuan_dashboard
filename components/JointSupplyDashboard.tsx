@@ -94,13 +94,13 @@ function CustomTooltip({ active, payload, label }: any) {
   );
 }
 
-export function JointSupplyDashboard({ date }: { date?: string }) {
+export function JointSupplyDashboard({ date: selectedDate }: { date?: string }) {
   const [data, setData] = useState<ApiData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/dashboard/joint-supply${date ? `?date=${date}` : ''}`)
+    fetch(`/api/dashboard/joint-supply${selectedDate ? `?date=${selectedDate}` : ''}`)
       .then((r) => r.json())
       .then((json) => {
         if (json.success) setData(json);
@@ -108,7 +108,7 @@ export function JointSupplyDashboard({ date }: { date?: string }) {
       })
       .catch(() => setError('网络请求失败'))
       .finally(() => setLoading(false));
-  }, [date]);
+  }, [selectedDate]);
 
   if (loading) {
     return (
@@ -232,7 +232,7 @@ export function JointSupplyDashboard({ date }: { date?: string }) {
                 name="岩湖送水量"
                 stackId="supply"
                 fill="#f5a442"
-                barSize={28}
+                barSize={20}
                 radius={[2, 2, 0, 0]}
               />
             </ComposedChart>
