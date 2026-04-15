@@ -45,7 +45,7 @@ export function FlowPeriodChartModal({ data, onClose }: Props) {
       cd_valley: +(v?.chengdong_cumulative_flow ?? 0).toFixed(0),
       cd_flat: +(f?.chengdong_cumulative_flow ?? 0).toFixed(0),
       cd_peak: +(k?.chengdong_cumulative_flow ?? 0).toFixed(0),
-      yh_valley: +(v?.yanhu_electricity ?? 0).toFixed(0),
+      yh_valley: +(v?.yanhu_cumulative_flow ?? 0).toFixed(0),
       yh_flat: +(f?.yanhu_electricity ?? 0).toFixed(0),
       yh_peak: +(k?.yanhu_electricity ?? 0).toFixed(0),
       elec_valley: +(v?.yanhu_cumulative_flow ?? 0).toFixed(0),
@@ -53,6 +53,17 @@ export function FlowPeriodChartModal({ data, onClose }: Props) {
       elec_peak: +(k?.yanhu_cumulative_flow ?? 0).toFixed(0),
     };
   });
+
+  // 计算所有堆叠的聚合最大值，统一左右 Y 轴的最大值刻度
+  const maxVal = chartData.reduce((max, d) => {
+    const cdTotal = d.cd_valley + d.cd_flat + d.cd_peak;
+    const yhTotal = d.yh_valley + d.yh_flat + d.yh_peak;
+    const elecTotal = d.elec_valley + d.elec_flat + d.elec_peak;
+    return Math.max(max, cdTotal, yhTotal, elecTotal);
+  }, 0);
+  
+  const magnitude = Math.pow(10, Math.floor(Math.log10(maxVal || 1)));
+  const yAxisMax = Math.ceil(maxVal / magnitude) * magnitude;
 
   return (
     <div
@@ -91,6 +102,7 @@ export function FlowPeriodChartModal({ data, onClose }: Props) {
                 <YAxis
                   yAxisId="left"
                   orientation="left"
+                  domain={[0, yAxisMax]}
                   tickCount={6}
                   tick={{ fontSize: 11, fill: '#6b7280' }}
                   axisLine={false}
@@ -101,6 +113,7 @@ export function FlowPeriodChartModal({ data, onClose }: Props) {
                 <YAxis
                   yAxisId="right"
                   orientation="right"
+                  domain={[0, yAxisMax]}
                   tickCount={6}
                   tick={{ fontSize: 11, fill: '#2563eb' }}
                   axisLine={false}
