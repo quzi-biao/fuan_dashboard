@@ -83,7 +83,7 @@ export async function POST(request: Request) {
       client.on('connect', async () => {
         try {
           for (let i = 0; i < 12; i++) {
-            const plcAddr = \`VD\${200 + i * 4}\`;
+            const plcAddr = `VD${200 + i * 4}`;
             const pressure = Number(values[i]);
             
             const pushData = {
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
               });
             });
             
-            console.log(\`Successfully pushed to \${plcAddr}: value=\${pressure}\`);
+            console.log(`Successfully pushed to ${plcAddr}: value=${pressure}`);
           }
           resolve();
         } catch (err) {

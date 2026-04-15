@@ -119,7 +119,7 @@ export default function ValveSettingsPage() {
 
         {/* 提示信息 */}
         {message && (
-          <div className={\`mb-6 p-4 rounded-lg flex items-center gap-3 \${message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}\`}>
+          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
             {message.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
             <span>{message.text}</span>
           </div>
