@@ -18,6 +18,7 @@ interface HourlyData {
   label: string;
   chengdong_supply: number;
   avg_water_level: number | null;
+  max_valve_opening: number | null;
   period: string;
   period_name: string;
 }
@@ -438,6 +439,7 @@ export function ChengdongDispatchDashboard({ date: selectedDate }: { date?: stri
               <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold">时段</th>
               <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">供水量 (m³)</th>
               <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">水位均值 (m)</th>
+              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">阀门开度最大值 (%)</th>
             </tr>
           </thead>
           <tbody>
@@ -461,6 +463,9 @@ export function ChengdongDispatchDashboard({ date: selectedDate }: { date?: stri
                 <td className="px-3 py-1.5 text-right text-gray-800">{row.chengdong_supply.toLocaleString()}</td>
                 <td className="px-3 py-1.5 text-right text-gray-800">
                   {row.avg_water_level != null ? row.avg_water_level.toFixed(2) : '-'}
+                </td>
+                <td className="px-3 py-1.5 text-right text-gray-800">
+                  {row.max_valve_opening != null ? row.max_valve_opening.toFixed(1) : '-'}
                 </td>
               </tr>
             ))}

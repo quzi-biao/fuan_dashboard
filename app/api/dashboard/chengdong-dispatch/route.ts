@@ -101,7 +101,8 @@ export async function GET(request: Request) {
       SELECT
         HOUR(collect_time) as hour,
         AVG(CASE WHEN i_1102 > 0 AND i_1102 < 10000 THEN i_1102 END) as chengdong_avg_flow,
-        AVG(CASE WHEN i_1097 > 0.1 AND i_1097 < 20 THEN i_1097 END) as avg_water_level
+        AVG(CASE WHEN i_1097 > 0.1 AND i_1097 < 20 THEN i_1097 END) as avg_water_level,
+        MAX(CASE WHEN i_1098 >= 0 AND i_1098 <= 100 THEN i_1098 END) as max_valve_opening
       FROM fuan_data
       WHERE DATE(collect_time) = ?
       GROUP BY HOUR(collect_time)
@@ -156,6 +157,7 @@ export async function GET(request: Request) {
         label: `${hour}:00`,
         chengdong_supply: row ? Math.round(row.chengdong_avg_flow || 0) : 0,
         avg_water_level: row && row.avg_water_level ? +Number(row.avg_water_level).toFixed(2) : null,
+        max_valve_opening: row && row.max_valve_opening != null ? +Number(row.max_valve_opening).toFixed(1) : null,
         period,
         period_name: PERIOD_NAMES[period],
       };
