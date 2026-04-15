@@ -9,12 +9,12 @@ const INDICATOR_START = 1104;
 export default function ValveSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
-  
+
   const [targetValues, setTargetValues] = useState<number[]>(Array(12).fill(0));
   const [actualValues, setActualValues] = useState<number[]>(Array(12).fill(0));
-  
+
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  
+
   // 用于让 setInterval 能访问到最新的 targetValues 避免被 useEffect 闭包卡死
   const targetValuesRef = useRef(targetValues);
   useEffect(() => {
@@ -49,12 +49,12 @@ export default function ValveSettingsPage() {
   useEffect(() => {
     // 首次获取
     fetchSettings(true);
-    
+
     // 定时轮询，每10秒更新一次（仅静默更新真机实际值 actualValues）
     const interval = setInterval(() => {
       fetchSettings(false);
     }, 10000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -137,7 +137,7 @@ export default function ValveSettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {targetValues.map((val, idx) => {
               const actualMatch = val === actualValues[idx];
-              
+
               return (
                 <div key={idx} className="flex flex-col p-4 bg-gray-50/50 rounded-xl border border-gray-100 hover:border-blue-200 transition-all shadow-sm">
                   <div className="flex items-center justify-between mb-3">
@@ -148,7 +148,7 @@ export default function ValveSettingsPage() {
                       VD{200 + idx * 4}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     <div className="relative flex-1">
                       {/* 在类名中使用了 pr-10 避免原生光标内容挤到 % 的绝对定位下 */}
@@ -163,7 +163,7 @@ export default function ValveSettingsPage() {
                         %
                       </div>
                     </div>
-                    
+
                     <button
                       onClick={() => handlePublish(idx)}
                       disabled={savingIndex !== null}
@@ -177,27 +177,16 @@ export default function ValveSettingsPage() {
                       )}
                     </button>
                   </div>
-                  
+
                   <div className="mt-2 text-sm flex justify-between font-medium">
                     <span className={actualMatch ? "text-green-600" : "text-red-500"}>
-                      实际值(InfluxDB): {actualValues[idx]}%
+                      实际值: {actualValues[idx]}%
                     </span>
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
-
-        <div className="mt-8 bg-blue-50/50 p-5 rounded-xl border border-blue-100 text-sm text-blue-800">
-          <p className="font-semibold mb-1 flex items-center gap-2">
-            <AlertCircle size={16} /> 设备参数说明
-          </p>
-          <ul className="list-disc ml-5 space-y-1 text-blue-700/80">
-            <li>输入框显示的为您在控制台保存过的<strong>目标开度配置</strong>（来源于 MySQL 数据库的固有记录）。</li>
-            <li>表单下方跟随刷新的数值为<strong>实际回传开度</strong>（每 10 秒读取一次机器通过 MQTT 退回 InfluxDB 时序库的数据）。</li>
-            <li>绿色代表目前终端已接纳最新设定并运作在此水平线，红色代表终端暂未响应新数值或正处于机器的响应延迟中。</li>
-          </ul>
         </div>
       </div>
     </div>
