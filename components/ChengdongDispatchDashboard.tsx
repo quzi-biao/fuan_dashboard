@@ -233,7 +233,7 @@ export function ChengdongDispatchDashboard({ date: selectedDate }: { date?: stri
         {valve_events.length > 0 && (
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" />
-            共 <span className="font-semibold text-gray-700 mx-0.5">{data.valve_sessions?.length ?? 0}</span> 个调节会话
+            共 <span className="font-semibold text-gray-700 mx-0.5">{data.valve_sessions?.length ?? 0}</span> 次阀门调节
           </span>
         )}
       </div>
@@ -415,7 +415,7 @@ export function ChengdongDispatchDashboard({ date: selectedDate }: { date?: stri
       {/* 阀门调节会话卡片 */}
       {(data.valve_sessions?.length ?? 0) > 0 && (
         <div>
-          <h4 className="text-sm font-semibold text-gray-700 mb-2">阀门调节会话</h4>
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">阀门调节</h4>
           <div className="flex flex-wrap gap-2">
             {data.valve_sessions.map((s, i) => {
               const isUp = s.direction === 'up';

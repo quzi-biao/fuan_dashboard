@@ -36,8 +36,8 @@ export function DashboardPanel() {
   const [activeTab, setActiveTab] = useState<'joint-supply' | 'chengdong-dispatch'>('joint-supply');
   const [selectedDate, setSelectedDate] = useState<string>(getYesterday());
 
-  const today = toDateStr(new Date());
-  const isNextDisabled = selectedDate >= today; // 不能超过今天
+  const yesterday = getYesterday();
+  const isNextDisabled = selectedDate >= yesterday; // 最多只能到昨天
 
   const TABS = [
     {
