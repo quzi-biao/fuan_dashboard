@@ -6,7 +6,7 @@
  */
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ReferenceArea, ResponsiveContainer,
@@ -107,42 +107,6 @@ export function ChengdongDispatchDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  // 合并每小时供水 + 每分钟水位/阀门数据到同一时间轴
-  const mergedData = useMemo(() => {
-    if (!data) return [];
-
-    // 构建以 timeDecimal 为 key 的 map（from hourly bars）
-    const map = new Map<number, any>();
-
-    data.hourly.forEach((h) => {
-      map.set(h.hour, {
-        timeDecimal: h.hour,
-        chengdong_supply: h.chengdong_supply,
-        water_level: null,
-        valve_opening: null,
-      });
-    });
-
-    // 插入每5分钟的折线数据
-    data.minute.forEach((m) => {
-      const key = Math.round(m.timeDecimal * 100) / 100;
-      if (map.has(key)) {
-        // 整点位置已有供水量数据，追加水位/阀门
-        const existing = map.get(key)!;
-        existing.water_level = m.water_level;
-        existing.valve_opening = m.valve_opening;
-      } else {
-        map.set(key, {
-          timeDecimal: key,
-          chengdong_supply: null,
-          water_level: m.water_level,
-          valve_opening: m.valve_opening,
-        });
-      }
-    });
-
-    return Array.from(map.values()).sort((a, b) => a.timeDecimal - b.timeDecimal);
-  }, [data]);
 
   if (loading) {
     return (
@@ -173,15 +137,20 @@ export function ChengdongDispatchDashboard() {
   const levelValues = hourly.map((h) => h.avg_water_level).filter((v): v is number => v != null && v > 0);
   const maxLevel = levelValues.length > 0 ? Math.ceil(Math.max(...levelValues) * 1.2) : 12;
 
+  // 图表数据：24个小时数据点，barSize 能正确生效；水位/阀门使用小时均值
+  const chartData = hourly.map((h) => ({
+    timeDecimal: h.hour,
+    chengdong_supply: h.chengdong_supply,
+    avg_water_level: h.avg_water_level,
+    avg_valve_opening: h.avg_valve_opening,
+  }));
+
   return (
     <div className="space-y-6">
       {/* 日期与数据说明 */}
       <div className="text-sm text-gray-500 flex flex-wrap gap-3 items-center">
         <span>
           分析日期：<span className="font-medium text-gray-700">{date}</span>
-        </span>
-        <span className="text-xs text-gray-400">
-          · 水位/阀门数据：每分钟一个点 · 供水量：小时累计 (m³)
         </span>
       </div>
 
@@ -190,7 +159,7 @@ export function ChengdongDispatchDashboard() {
         <div style={{ minWidth: 640 }}>
           <ResponsiveContainer width="100%" height={500}>
             <ComposedChart
-              data={mergedData}
+              data={chartData}
               margin={{ top: 10, right: 70, bottom: 10, left: 80 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
@@ -278,27 +247,27 @@ export function ChengdongDispatchDashboard() {
                 radius={[2, 2, 0, 0]}
               />
 
-              {/* 清水池水位折线（每分钟数据，右轴） */}
+              {/* 清水池水位折线（小时均值） */}
               <Line
                 yAxisId="right-level"
-                dataKey="water_level"
+                dataKey="avg_water_level"
                 name="清水池水位"
                 stroke="#f97316"
                 strokeWidth={2}
-                dot={false}
+                dot={{ r: 3, fill: '#f97316' }}
                 connectNulls={false}
                 type="monotone"
               />
 
-              {/* 阀门开度折线（每分钟数据，隐藏轴） */}
+              {/* 阀门开度折线（小时均值，隐藏轴） */}
               <Line
                 yAxisId="right-valve"
-                dataKey="valve_opening"
+                dataKey="avg_valve_opening"
                 name="阀门开度"
                 stroke="#8b5cf6"
                 strokeWidth={1.5}
                 strokeDasharray="5 3"
-                dot={false}
+                dot={{ r: 2, fill: '#8b5cf6' }}
                 connectNulls={false}
                 type="monotone"
               />
