@@ -156,24 +156,20 @@ export async function GET(request: Request) {
     });
 
     // 日汇总
-    const totalFlow   = hourlyData.reduce((s, h) => s + h.flow_m3, 0);
-    const totalPower  = hourlyData.reduce((s, h) => s + h.power_kwh, 0);
-    const avgPressure = dailyWeightedPress; // 全天流量加权均压，与 analyzeEfficiency 一致
-    const dailyP1000t  = totalFlow > 0 && totalPower > 0 ? totalPower * 1000 / totalFlow : null;
-    const effHours = hourlyData.filter(h => h.pump_efficiency != null && h.pump_efficiency > 0);
-    const avgPumpEff = effHours.length > 0
-      ? effHours.reduce((s, h) => s + (h.pump_efficiency ?? 0), 0) / effHours.length : null;
+    const totalFlow  = hourlyData.reduce((s, h) => s + h.flow_m3, 0);
+    const totalPower = hourlyData.reduce((s, h) => s + h.power_kwh, 0);
+    const avgPressure = dailyWeightedPress;
+    const dailyP1000t = totalFlow > 0 && totalPower > 0 ? totalPower * 1000 / totalFlow : null;
 
     return NextResponse.json({
       success: true,
       date: targetDate,
       hourly: hourlyData,
       summary: {
-        total_flow_m3:       +totalFlow.toFixed(0),
-        total_power_kwh:     +totalPower.toFixed(1),
-        avg_pressure_mpa:    +avgPressure.toFixed(4),
-        daily_power_1000t:   dailyP1000t  ? +dailyP1000t.toFixed(2)  : null,
-        avg_pump_efficiency: avgPumpEff   ? +avgPumpEff.toFixed(2)   : null,
+        total_flow_m3:     +totalFlow.toFixed(0),
+        total_power_kwh:   +totalPower.toFixed(1),
+        avg_pressure_mpa:  +avgPressure.toFixed(4),
+        daily_power_1000t: dailyP1000t ? +dailyP1000t.toFixed(2) : null,
       },
     });
   } catch (error) {

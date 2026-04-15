@@ -32,7 +32,6 @@ interface Summary {
   total_power_kwh: number;
   avg_pressure_mpa: number;
   daily_power_1000t: number | null;
-  avg_pump_efficiency: number | null;
 }
 
 const PERIOD_BG: Record<string, string> = {
@@ -157,7 +156,6 @@ export function YanhuDispatchDashboard({ date: selectedDate }: { date?: string }
               { label: '日耗电量', value: summary.total_power_kwh.toFixed(1), unit: 'kWh', color: '#8b5cf6' },
               { label: '日均压力', value: summary.avg_pressure_mpa.toFixed(3), unit: 'MPa', color: '#f97316' },
               { label: '日千吨水电耗', value: summary.daily_power_1000t?.toFixed(2) ?? '—', unit: 'kWh/kt', color: '#6b7280' },
-              { label: '日均泵效', value: summary.avg_pump_efficiency != null ? `${summary.avg_pump_efficiency.toFixed(2)}%` : '—', unit: '', color: '#10b981' },
             ].map((item) => (
               <div
                 key={item.label}
