@@ -311,10 +311,10 @@ export function analyzeEfficiency(data: FlowDataRecord[]): EfficiencyAnalysisRes
         // Python公式: i_1072_adjusted / i_1073_adjusted * 1000 (水量/电量)
         const powerPer1000t = dailyPower > 0 ? (dailyWater / dailyPower * 1000) : 0;
         const powerPerPressure = pressureWeightedAvg > 0 ? (powerPer1000t / pressureWeightedAvg) : 0;
-        // 泵组综合效率(%) = 0.278 × 压力(MPa) × 1000 / dailyPowerPerKt
-        // dailyPowerPerKt = daily_power × 1000 / daily_water = 1e6 / power_per_1000t
-        // → pump_efficiency = 0.278 × pressure × power_per_1000t / 1000
-        const pumpEfficiency = powerPer1000t > 0 ? 0.278 * pressureWeightedAvg * powerPer1000t / 1000 : 0;
+        // 泵组综合效率(%) = (0.278 × 压力(MPa) × 1000) / dailyPowerPerKt
+        // dailyPowerPerKt [kWh/kt] = power_per_1000t（analysis.ts中字段含义一致）
+        // 与 EnergySavingModal: pumpEfficiency = (0.278 × avg_pressure × 1000) / dailyPowerPerKt
+        const pumpEfficiency = powerPer1000t > 0 ? (0.278 * pressureWeightedAvg * 1000) / powerPer1000t : 0;
         
         results.push({
           date: nextDate,
