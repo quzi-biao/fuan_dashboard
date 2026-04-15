@@ -22,9 +22,9 @@ interface Props {
 
 // 谷/平/峰 三色方案（三组各一套，深浅略有区分）
 const C = {
-  cd:   { valley: '#6ee7b7', flat: '#fcd34d', peak: '#f87171' }, // 城东流量
-  yh:   { valley: '#34d399', flat: '#f59e0b', peak: '#ef4444' }, // 岩湖流量
-  elec: { valley: '#a7f3d0', flat: '#fde68a', peak: '#fca5a5' }, // 岩湖电量（淡色）
+  cd: { valley: '#6ee7b7', flat: '#fcd34d', peak: '#f87171' }, // 城东流量
+  yh: { valley: '#34d399', flat: '#f59e0b', peak: '#ef4444' }, // 岩湖流量
+  elec: { valley: '#bfdbfe', flat: '#60a5fa', peak: '#2563eb' }, // 岩湖电量（蓝色系）
 };
 
 const LEGEND_LABELS: Record<string, string> = {
@@ -42,15 +42,15 @@ export function FlowPeriodChartModal({ data, onClose }: Props) {
     const v = get('valley'), f = get('flat'), k = get('peak');
     return {
       date: date.slice(5),
-      cd_valley:   +(v?.chengdong_cumulative_flow ?? 0).toFixed(0),
-      cd_flat:     +(f?.chengdong_cumulative_flow ?? 0).toFixed(0),
-      cd_peak:     +(k?.chengdong_cumulative_flow ?? 0).toFixed(0),
-      yh_valley:   +(v?.yanhu_cumulative_flow ?? 0).toFixed(0),
-      yh_flat:     +(f?.yanhu_cumulative_flow ?? 0).toFixed(0),
-      yh_peak:     +(k?.yanhu_cumulative_flow ?? 0).toFixed(0),
+      cd_valley: +(v?.chengdong_cumulative_flow ?? 0).toFixed(0),
+      cd_flat: +(f?.chengdong_cumulative_flow ?? 0).toFixed(0),
+      cd_peak: +(k?.chengdong_cumulative_flow ?? 0).toFixed(0),
+      yh_valley: +(v?.yanhu_cumulative_flow ?? 0).toFixed(0),
+      yh_flat: +(f?.yanhu_cumulative_flow ?? 0).toFixed(0),
+      yh_peak: +(k?.yanhu_cumulative_flow ?? 0).toFixed(0),
       elec_valley: +(v?.yanhu_electricity ?? 0).toFixed(0),
-      elec_flat:   +(f?.yanhu_electricity ?? 0).toFixed(0),
-      elec_peak:   +(k?.yanhu_electricity ?? 0).toFixed(0),
+      elec_flat: +(f?.yanhu_electricity ?? 0).toFixed(0),
+      elec_peak: +(k?.yanhu_electricity ?? 0).toFixed(0),
     };
   });
 
@@ -100,11 +100,11 @@ export function FlowPeriodChartModal({ data, onClose }: Props) {
                 <YAxis
                   yAxisId="right"
                   orientation="right"
-                  tick={{ fontSize: 11, fill: '#6b7280' }}
+                  tick={{ fontSize: 11, fill: '#2563eb' }}
                   axisLine={false}
                   tickLine={false}
                   width={64}
-                  label={{ value: '电量 (kWh)', angle: 90, position: 'insideRight', offset: 10, style: { fontSize: 11, fill: '#9ca3af' } }}
+                  label={{ value: '电量 (kWh)', angle: 90, position: 'insideRight', offset: 10, style: { fontSize: 11, fill: '#2563eb' } }}
                 />
                 <Tooltip
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb', boxShadow: '0 4px 12px rgba(0,0,0,.08)' }}
@@ -121,19 +121,19 @@ export function FlowPeriodChartModal({ data, onClose }: Props) {
                 />
 
                 {/* 城东流量（谷→平→峰 叠加） */}
-                <Bar yAxisId="left" dataKey="cd_valley" stackId="cd" fill={C.cd.valley} name="cd_valley" radius={[0,0,0,0]} />
-                <Bar yAxisId="left" dataKey="cd_flat"   stackId="cd" fill={C.cd.flat}   name="cd_flat" />
-                <Bar yAxisId="left" dataKey="cd_peak"   stackId="cd" fill={C.cd.peak}   name="cd_peak" radius={[3,3,0,0]} />
+                <Bar yAxisId="left" dataKey="cd_valley" stackId="cd" fill={C.cd.valley} name="cd_valley" radius={[0, 0, 0, 0]} />
+                <Bar yAxisId="left" dataKey="cd_flat" stackId="cd" fill={C.cd.flat} name="cd_flat" />
+                <Bar yAxisId="left" dataKey="cd_peak" stackId="cd" fill={C.cd.peak} name="cd_peak" radius={[3, 3, 0, 0]} />
 
                 {/* 岩湖流量 */}
                 <Bar yAxisId="left" dataKey="yh_valley" stackId="yh" fill={C.yh.valley} name="yh_valley" />
-                <Bar yAxisId="left" dataKey="yh_flat"   stackId="yh" fill={C.yh.flat}   name="yh_flat" />
-                <Bar yAxisId="left" dataKey="yh_peak"   stackId="yh" fill={C.yh.peak}   name="yh_peak" radius={[3,3,0,0]} />
+                <Bar yAxisId="left" dataKey="yh_flat" stackId="yh" fill={C.yh.flat} name="yh_flat" />
+                <Bar yAxisId="left" dataKey="yh_peak" stackId="yh" fill={C.yh.peak} name="yh_peak" radius={[3, 3, 0, 0]} />
 
                 {/* 岩湖电量（右轴，淡色） */}
                 <Bar yAxisId="right" dataKey="elec_valley" stackId="elec" fill={C.elec.valley} name="elec_valley" />
-                <Bar yAxisId="right" dataKey="elec_flat"   stackId="elec" fill={C.elec.flat}   name="elec_flat" />
-                <Bar yAxisId="right" dataKey="elec_peak"   stackId="elec" fill={C.elec.peak}   name="elec_peak" radius={[3,3,0,0]} />
+                <Bar yAxisId="right" dataKey="elec_flat" stackId="elec" fill={C.elec.flat} name="elec_flat" />
+                <Bar yAxisId="right" dataKey="elec_peak" stackId="elec" fill={C.elec.peak} name="elec_peak" radius={[3, 3, 0, 0]} />
               </ComposedChart>
             </ResponsiveContainer>
           )}

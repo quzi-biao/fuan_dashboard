@@ -175,7 +175,7 @@ export function YanhuDispatchDashboard({ date: selectedDate }: { date?: string }
       <div className="w-full overflow-x-auto">
         <div style={{ minWidth: 640 }}>
           <ResponsiveContainer width="100%" height={500}>
-            <ComposedChart data={hourly} margin={{ top: 16, right: 80, bottom: 10, left: 60 }}>
+            <ComposedChart data={hourly} margin={{ top: 16, right: 70, bottom: 10, left: 80 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
 
               {/* 时段背景 */}
@@ -208,14 +208,8 @@ export function YanhuDispatchDashboard({ date: selectedDate }: { date?: string }
                 yAxisId="left"
                 orientation="left"
                 tick={{ fontSize: 11, fill: '#6b7280' }}
-                label={{
-                  value: '送水量 (m³)',
-                  angle: -90,
-                  position: 'insideLeft',
-                  dx: -45,
-                  fontSize: 11,
-                  fill: '#4f86c6',
-                }}
+                width={55}
+                unit=" m³"
               />
 
               {/* 右轴：送水压力 */}
@@ -224,22 +218,22 @@ export function YanhuDispatchDashboard({ date: selectedDate }: { date?: string }
                 orientation="right"
                 domain={[0, +maxPressure.toFixed(2)]}
                 tick={{ fontSize: 11, fill: '#f97316' }}
-                tickFormatter={(v) => `${v.toFixed(2)}`}
+                tickFormatter={(v) => v.toFixed(2)}
                 label={{
                   value: '压力 (MPa)',
                   angle: 90,
                   position: 'insideRight',
-                  dx: 10,
+                  dx: 55,
                   fontSize: 11,
                   fill: '#f97316',
                 }}
               />
 
               {/* 隐藏轴：千吨水电耗 (auto scale) */}
-              <YAxis yAxisId="right-power" orientation="right" hide />
+              <YAxis yAxisId="right-power" orientation="right" hide width={0} />
 
               {/* 隐藏轴：泵组综合效率 0-200% */}
-              <YAxis yAxisId="right-eff" orientation="right" domain={[0, 200]} hide />
+              <YAxis yAxisId="right-eff" orientation="right" domain={[0, 200]} hide width={0} />
 
               <Tooltip content={<CustomTooltip />} />
               <Legend
