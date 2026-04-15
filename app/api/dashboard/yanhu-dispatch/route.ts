@@ -33,7 +33,7 @@ function toDateStr(d: Date) {
 
 function getYesterday() {
   const d = new Date();
-  d.setDate(d.getDate() - 1);
+  d.setDate(d.getDate() - 2);
   return toDateStr(d);
 }
 
@@ -98,10 +98,10 @@ export async function GET(request: Request) {
       ),
     ]);
     const tr = (totalRows as any[])[0] ?? {};
-    const dailyTotalWater    = Number(tr.daily_water) || 0;
-    const dailyTotalElec     = Number(tr.daily_elec)  || 0;
+    const dailyTotalWater = Number(tr.daily_water) || 0;
+    const dailyTotalElec = Number(tr.daily_elec) || 0;
     // 压力：前一天的流量加权均值（shift(-1)），备选当天
-    const prevPressRow       = (prevPressRows as any[])[0] ?? {};
+    const prevPressRow = (prevPressRows as any[])[0] ?? {};
     const dailyWeightedPress = Number(prevPressRow.pressure_weighted_avg) || Number(tr.pressure_weighted_avg) || 0;
 
 
@@ -109,9 +109,9 @@ export async function GET(request: Request) {
     (rows as any[]).forEach((r) => { rowMap[r.hour] = r; });
 
     // 权重汇总（用于比例分配）
-    const flowWeights  = Array.from({ length: 24 }, (_, h) => Math.max(Number(rowMap[h]?.avg_flow)         || 0, 0));
+    const flowWeights = Array.from({ length: 24 }, (_, h) => Math.max(Number(rowMap[h]?.avg_flow) || 0, 0));
     const powerWeights = Array.from({ length: 24 }, (_, h) => Math.max(Number(rowMap[h]?.hour_power_weight) || 0, 0));
-    const totalFlowWeight  = flowWeights.reduce((s, v) => s + v, 0);
+    const totalFlowWeight = flowWeights.reduce((s, v) => s + v, 0);
     const totalPowerWeight = powerWeights.reduce((s, v) => s + v, 0);
 
     const hourlyData = Array.from({ length: 24 }, (_, hour) => {
@@ -119,44 +119,44 @@ export async function GET(request: Request) {
       const period = getPeriod(hour);
 
       // 按权重比例分配日总量 → sum(小时) = 日总量（精确）
-      const flowM3   = totalFlowWeight  > 0 && dailyTotalWater > 0
-        ? +(dailyTotalWater * flowWeights[hour]  / totalFlowWeight).toFixed(1)  : 0;
-      const powerKwh = totalPowerWeight > 0 && dailyTotalElec  > 0
-        ? +(dailyTotalElec  * powerWeights[hour] / totalPowerWeight).toFixed(1) : 0;
+      const flowM3 = totalFlowWeight > 0 && dailyTotalWater > 0
+        ? +(dailyTotalWater * flowWeights[hour] / totalFlowWeight).toFixed(1) : 0;
+      const powerKwh = totalPowerWeight > 0 && dailyTotalElec > 0
+        ? +(dailyTotalElec * powerWeights[hour] / totalPowerWeight).toFixed(1) : 0;
 
       const pressure = row ? (Number(row.weighted_pressure) || 0) : 0;
 
       // 千吨水电耗 (kWh/kt)
-      const power1000t    = flowM3 > 0 && powerKwh > 0 ? +(powerKwh * 1000 / flowM3).toFixed(2) : null;
+      const power1000t = flowM3 > 0 && powerKwh > 0 ? +(powerKwh * 1000 / flowM3).toFixed(2) : null;
       // 千吨水兆帕电耗
       const power1000tMpa = pressure > 0 && power1000t ? +(power1000t / pressure).toFixed(2) : null;
       // 泵组综合效率 (%)
       const pumpEff = power1000t && power1000t > 0 && pressure > 0
         ? +(0.278 * pressure * 1000 / power1000t * 100).toFixed(2) : null;
 
-      const pump1   = row ? (Number(row.max_pump1_freq) > 5 ? '启' : '停') : '停';
-      const pump2   = row ? (Number(row.max_pump2_freq) > 5 ? '启' : '停') : '停';
-      const auxPump = row ? (Number(row.max_aux_freq)   > 5 ? '启' : '停') : '停';
+      const pump1 = row ? (Number(row.max_pump1_freq) > 5 ? '启' : '停') : '停';
+      const pump2 = row ? (Number(row.max_pump2_freq) > 5 ? '启' : '停') : '停';
+      const auxPump = row ? (Number(row.max_aux_freq) > 5 ? '启' : '停') : '停';
 
       return {
         hour,
-        label:           `${hour}:00`,
+        label: `${hour}:00`,
         period,
-        period_name:     PERIOD_NAMES[period],
-        flow_m3:         flowM3,
-        pressure_mpa:    +pressure.toFixed(4),
-        power_kwh:       powerKwh,
-        power_1000t:     power1000t,
+        period_name: PERIOD_NAMES[period],
+        flow_m3: flowM3,
+        pressure_mpa: +pressure.toFixed(4),
+        power_kwh: powerKwh,
+        power_1000t: power1000t,
         power_1000t_mpa: power1000tMpa,
         pump_efficiency: pumpEff,
         pump1,
         pump2,
-        aux_pump:        auxPump,
+        aux_pump: auxPump,
       };
     });
 
     // 日汇总
-    const totalFlow  = hourlyData.reduce((s, h) => s + h.flow_m3, 0);
+    const totalFlow = hourlyData.reduce((s, h) => s + h.flow_m3, 0);
     const totalPower = hourlyData.reduce((s, h) => s + h.power_kwh, 0);
     const avgPressure = dailyWeightedPress;
     const dailyP1000t = totalFlow > 0 && totalPower > 0 ? totalPower * 1000 / totalFlow : null;
@@ -166,9 +166,9 @@ export async function GET(request: Request) {
       date: targetDate,
       hourly: hourlyData,
       summary: {
-        total_flow_m3:     +totalFlow.toFixed(0),
-        total_power_kwh:   +totalPower.toFixed(1),
-        avg_pressure_mpa:  +avgPressure.toFixed(4),
+        total_flow_m3: +totalFlow.toFixed(0),
+        total_power_kwh: +totalPower.toFixed(1),
+        avg_pressure_mpa: +avgPressure.toFixed(4),
         daily_power_1000t: dailyP1000t ? +dailyP1000t.toFixed(2) : null,
       },
     });

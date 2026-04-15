@@ -26,10 +26,10 @@ function addDays(dateStr: string, delta: number): string {
   return toDateStr(d);
 }
 
-// 默认昨天
+// 默认前天
 function getYesterday(): string {
   const d = new Date();
-  d.setDate(d.getDate() - 1);
+  d.setDate(d.getDate() - 2);
   return toDateStr(d);
 }
 
@@ -37,7 +37,7 @@ export function DashboardPanel() {
   const [activeTab, setActiveTab] = useState<'joint-supply' | 'chengdong-dispatch' | 'yanhu-dispatch'>('joint-supply');
   const [selectedDate, setSelectedDate] = useState<string>(getYesterday());
 
-  const yesterday = getYesterday();
+  const yesterday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return toDateStr(d); })();
   const isNextDisabled = selectedDate >= yesterday; // 最多只能到昨天
 
   const TABS = [
