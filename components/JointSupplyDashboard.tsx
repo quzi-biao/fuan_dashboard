@@ -167,7 +167,7 @@ export function JointSupplyDashboard() {
       {/* 柱状图：城东+岩湖堆叠，横轴为小时，背景区分高低峰 */}
       <div className="w-full overflow-x-auto">
         <div style={{ minWidth: 640 }}>
-          <ResponsiveContainer width="100%" height={320}>
+          <ResponsiveContainer width="100%" height={500}>
             <ComposedChart
               data={hourly}
               margin={{ top: 10, right: 20, bottom: 40, left: 70 }}
@@ -258,15 +258,15 @@ export function JointSupplyDashboard() {
       </div>
 
       {/* 分时数据表格 */}
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
+      <div className="overflow-x-auto rounded-lg border border-gray-200" style={{ maxHeight: 300, overflowY: 'auto' }}>
         <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="bg-gray-50 text-gray-700">
-              <th className="border-b border-gray-200 px-3 py-2 text-left font-medium">时间</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-center font-medium">时段</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-medium">城东 (m³/h)</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-medium">岩湖 (m³/h)</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-medium">合计 (m³/h)</th>
+          <thead className="sticky top-0 z-10">
+            <tr className="bg-gray-50 text-gray-800">
+              <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold">时间</th>
+              <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold">时段</th>
+              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">城东 (m³/h)</th>
+              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">岩湖 (m³/h)</th>
+              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">合计 (m³/h)</th>
             </tr>
           </thead>
           <tbody>
@@ -275,7 +275,7 @@ export function JointSupplyDashboard() {
                 key={row.hour}
                 className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
               >
-                <td className="px-3 py-1.5 text-gray-600">{row.label}</td>
+                <td className="px-3 py-1.5 text-gray-800">{row.label}</td>
                 <td className="px-3 py-1.5 text-center">
                   <span
                     className="inline-block px-1.5 py-0.5 rounded text-xs font-medium"
@@ -287,9 +287,9 @@ export function JointSupplyDashboard() {
                     {row.period_name}
                   </span>
                 </td>
-                <td className="px-3 py-1.5 text-right">{row.chengdong_supply.toLocaleString()}</td>
-                <td className="px-3 py-1.5 text-right">{row.yanhu_supply.toLocaleString()}</td>
-                <td className="px-3 py-1.5 text-right font-medium">{row.total_supply.toLocaleString()}</td>
+                <td className="px-3 py-1.5 text-right text-gray-800">{row.chengdong_supply.toLocaleString()}</td>
+                <td className="px-3 py-1.5 text-right text-gray-800">{row.yanhu_supply.toLocaleString()}</td>
+                <td className="px-3 py-1.5 text-right font-semibold text-gray-900">{row.total_supply.toLocaleString()}</td>
               </tr>
             ))}
             <tr className="bg-gray-50 font-semibold border-t-2 border-gray-300 text-gray-800">

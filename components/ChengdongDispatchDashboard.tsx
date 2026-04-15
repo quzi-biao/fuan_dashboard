@@ -188,7 +188,7 @@ export function ChengdongDispatchDashboard() {
       {/* 图表 */}
       <div className="w-full overflow-x-auto">
         <div style={{ minWidth: 640 }}>
-          <ResponsiveContainer width="100%" height={360}>
+          <ResponsiveContainer width="100%" height={500}>
             <ComposedChart
               data={mergedData}
               margin={{ top: 10, right: 70, bottom: 40, left: 80 }}
@@ -274,7 +274,7 @@ export function ChengdongDispatchDashboard() {
                 name="城东供水量"
                 fill="#4f86c6"
                 fillOpacity={0.85}
-                barSize={26}
+                barSize={36}
                 radius={[2, 2, 0, 0]}
               />
 
@@ -325,15 +325,15 @@ export function ChengdongDispatchDashboard() {
       </div>
 
       {/* 每小时数据表格 */}
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
+      <div className="overflow-x-auto rounded-lg border border-gray-200" style={{ maxHeight: 300, overflowY: 'auto' }}>
         <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="bg-gray-50 text-gray-700">
-              <th className="border-b border-gray-200 px-3 py-2 text-left font-medium">时间</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-center font-medium">时段</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-medium">供水量 (m³/h)</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-medium">水位均值 (m)</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-medium">阀门开度均值 (%)</th>
+          <thead className="sticky top-0 z-10">
+            <tr className="bg-gray-50 text-gray-800">
+              <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold">时间</th>
+              <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold">时段</th>
+              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">供水量 (m³/h)</th>
+              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">水位均值 (m)</th>
+              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">阀门开度均值 (%)</th>
             </tr>
           </thead>
           <tbody>
@@ -342,7 +342,7 @@ export function ChengdongDispatchDashboard() {
                 key={row.hour}
                 className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
               >
-                <td className="px-3 py-1.5 text-gray-600">{row.label}</td>
+                <td className="px-3 py-1.5 text-gray-800">{row.label}</td>
                 <td className="px-3 py-1.5 text-center">
                   <span
                     className="inline-block px-1.5 py-0.5 rounded text-xs font-medium"
@@ -354,11 +354,11 @@ export function ChengdongDispatchDashboard() {
                     {row.period_name}
                   </span>
                 </td>
-                <td className="px-3 py-1.5 text-right">{row.chengdong_supply.toLocaleString()}</td>
-                <td className="px-3 py-1.5 text-right">
+                <td className="px-3 py-1.5 text-right text-gray-800">{row.chengdong_supply.toLocaleString()}</td>
+                <td className="px-3 py-1.5 text-right text-gray-800">
                   {row.avg_water_level != null ? row.avg_water_level.toFixed(2) : '-'}
                 </td>
-                <td className="px-3 py-1.5 text-right">
+                <td className="px-3 py-1.5 text-right text-gray-800">
                   {row.avg_valve_opening != null ? row.avg_valve_opening.toFixed(1) : '-'}
                 </td>
               </tr>
