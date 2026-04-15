@@ -450,49 +450,56 @@ export function ChengdongDispatchDashboard({ date: selectedDate }: { date?: stri
         </div>
       )}
 
-      {/* 每小时数据表格 */}
-      <div className="overflow-x-auto rounded-lg border border-gray-200" style={{ maxHeight: 300, overflowY: 'auto' }}>
-        <table className="w-full text-sm border-collapse">
-          <thead className="sticky top-0 z-10">
-            <tr className="bg-gray-50 text-gray-800">
-              <th className="border-b border-gray-200 px-3 py-2 text-left font-semibold">时间</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold">时段</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">供水量 (m³)</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">水位均值 (m)</th>
-              <th className="border-b border-gray-200 px-3 py-2 text-right font-semibold">阀门开度 (%)</th>
+      {/* 每小时数据表格（时间为列） */}
+      <div className="overflow-x-auto rounded-lg border border-gray-200">
+        <table className="text-xs border-collapse whitespace-nowrap">
+          {/* 表头行：指标 | 0:00 | 1:00 | … | 23:00 */}
+          <thead>
+            <tr className="bg-gray-50 text-gray-700">
+              <th className="sticky left-0 z-20 bg-gray-50 border-b border-r border-gray-200 px-3 py-2 text-left font-semibold">指标</th>
+              {hourly.map((h) => (
+                <th
+                  key={h.hour}
+                  className="border-b border-gray-200 px-2 py-2 text-center font-medium min-w-[46px]"
+                  style={{ background: PERIOD_BG[h.period], color: PERIOD_COLORS[h.period] }}
+                >
+                  {h.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {hourly.map((row) => (
-              <tr
-                key={row.hour}
-                className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-              >
-                <td className="px-3 py-1.5 text-gray-800">{row.label}</td>
-                <td className="px-3 py-1.5 text-center">
-                  <span
-                    className="inline-block px-1.5 py-0.5 rounded text-xs font-medium"
-                    style={{
-                      background: PERIOD_BG[row.period],
-                      color: PERIOD_COLORS[row.period],
-                    }}
-                  >
-                    {row.period_name}
-                  </span>
+            {/* 供水量 */}
+            <tr className="border-b border-gray-100">
+              <td className="sticky left-0 z-10 bg-white border-r border-gray-200 px-3 py-1.5 font-medium text-gray-700">供水量 (m³)</td>
+              {hourly.map((h) => (
+                <td key={h.hour} className="px-2 py-1.5 text-center text-gray-800">
+                  {h.chengdong_supply > 0 ? h.chengdong_supply.toLocaleString() : <span className="text-gray-300">—</span>}
                 </td>
-                <td className="px-3 py-1.5 text-right text-gray-800">{row.chengdong_supply.toLocaleString()}</td>
-                <td className="px-3 py-1.5 text-right text-gray-800">
-                  {row.avg_water_level != null ? row.avg_water_level.toFixed(2) : '-'}
+              ))}
+            </tr>
+            {/* 水位均值 */}
+            <tr className="border-b border-gray-100 bg-gray-50/50">
+              <td className="sticky left-0 z-10 bg-gray-50 border-r border-gray-200 px-3 py-1.5 font-medium text-gray-700">水位 (m)</td>
+              {hourly.map((h) => (
+                <td key={h.hour} className="px-2 py-1.5 text-center text-gray-800">
+                  {h.avg_water_level != null ? h.avg_water_level.toFixed(2) : <span className="text-gray-300">—</span>}
                 </td>
-                <td className="px-3 py-1.5 text-right text-gray-800">
-                  {row.max_valve_opening != null ? row.max_valve_opening.toFixed(1) : '-'}
+              ))}
+            </tr>
+            {/* 阀门开度最大值 */}
+            <tr>
+              <td className="sticky left-0 z-10 bg-white border-r border-gray-200 px-3 py-1.5 font-medium text-gray-700">阀门开度 (%)</td>
+              {hourly.map((h) => (
+                <td key={h.hour} className="px-2 py-1.5 text-center text-gray-800">
+                  {h.max_valve_opening != null ? h.max_valve_opening.toFixed(1) : <span className="text-gray-300">—</span>}
                 </td>
-              </tr>
-            ))}
-
+              ))}
+            </tr>
           </tbody>
         </table>
       </div>
+
     </div>
   );
 }
