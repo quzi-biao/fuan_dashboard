@@ -98,8 +98,11 @@ export async function GET(request: Request) {
       chengdong_flow: Number(r.chengdong_flow) || 0,
       yanhu_flow: Number(r.yanhu_flow) || 0,
       yanhu_pressure: r.yanhu_pressure != null ? Number(r.yanhu_pressure) : undefined,
-      yanhu_daily_water: r.yanhu_daily_water != null ? Number(r.yanhu_daily_water) : undefined,
-      yanhu_daily_power: r.yanhu_daily_power != null ? Number(r.yanhu_daily_power) : undefined,
+      // db.ts 中 i_1072/i_1073 别名与实际物理含义相反，此处纠正：
+      // i_1072 (yanhu_daily_water in db) 实为日累计电量 → 映射到 yanhu_daily_power
+      // i_1073 (yanhu_daily_power in db) 实为日累计水量 → 映射到 yanhu_daily_water
+      yanhu_daily_water: r.yanhu_daily_power != null ? Number(r.yanhu_daily_power) : undefined,
+      yanhu_daily_power: r.yanhu_daily_water != null ? Number(r.yanhu_daily_water) : undefined,
     }));
     const analysisResults = analyzeFlowByElectricityPeriod(flowRecords);
 
