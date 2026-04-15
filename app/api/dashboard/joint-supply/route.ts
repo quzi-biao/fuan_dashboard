@@ -92,7 +92,7 @@ export async function GET(request: Request) {
 
     // ② 时段汇总卡片：使用 analyzeFlowByElectricityPeriod（与流量分时段分析接口一致）
     //    岩湖使用 i_1072 水表差值法，精度远高于流量均值法
-    const rawData = await getDataByDateRange(targetDate, targetDate);
+    const rawData = await getDataByDateRange(targetDate!, targetDate!);
     const flowRecords = rawData.map((r) => ({
       collect_time: new Date(r.collect_time),
       chengdong_flow: Number(r.chengdong_flow) || 0,
