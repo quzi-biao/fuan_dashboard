@@ -21,7 +21,7 @@ export async function GET() {
     // 查询指定指标最新记录，避免时序断层可适当放宽时间范围，这里用 -30d 作为后备
     const query = `
       from(bucket: "${INFLUX_CONFIG.bucket}")
-      |> range(start: -30d)
+      |> range(start: -5m)
       |> filter(fn: (r) => 
           r["_measurement"] == "plcData" and
           r["_field"] == "value" and
@@ -61,18 +61,18 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { values } = body;
+    const { index, value } = body;
     
-    // 预期接收一个长度为 12 的数组，依次对应时段 1 到时段 12，即 VD200..VD244
-    if (!Array.isArray(values) || values.length !== 12) {
-      return NextResponse.json({ success: false, error: '无效的数据格式，需包含12个开度参数' }, { status: 400 });
+    // 预期接收在 0-11 的 index 以及单个 value
+    if (typeof index !== 'number' || index < 0 || index > 11 || typeof value !== 'number') {
+      return NextResponse.json({ success: false, error: '无效的数据格式，需指定时段索引及开度参数' }, { status: 400 });
     }
 
     const brokerUrl = process.env.MQTT_BROKER || 'mqtt://43.139.93.159:1883';
     const boxId = '795373b7f0ae89edc7013c43b81a107f';
     const pushTopic = 'waterdev/press/push';
 
-    console.log('Connecting to MQTT for valve settings dispatch...');
+    console.log(`Connecting to MQTT for dispatching index ${index}...`);
     const client = mqtt.connect(brokerUrl, {
       clientId: `fuan_dashboard_valve_${Date.now()}`,
       connectTimeout: 5000,
@@ -82,29 +82,26 @@ export async function POST(request: Request) {
     await new Promise<void>((resolve, reject) => {
       client.on('connect', async () => {
         try {
-          for (let i = 0; i < 12; i++) {
-            const plcAddr = `VD${200 + i * 4}`;
-            const pressure = Number(values[i]);
-            
-            const pushData = {
-              cmd: 'pushPressData',
-              boxId: boxId,
-              plcAddr: plcAddr,
-              pressure: pressure
-            };
-            
-            const dataJson = JSON.stringify(pushData);
-            
-            // 同步发布，确保各路指令有序到达 MQTT 队列（QoS=1）
-            await new Promise<void>((pubRes, pubRej) => {
-              client.publish(pushTopic, dataJson, { qos: 1 }, (err) => {
-                if (err) pubRej(err);
-                else pubRes();
-              });
+          const plcAddr = `VD${200 + index * 4}`;
+          
+          const pushData = {
+            cmd: 'pushPressData',
+            boxId: boxId,
+            plcAddr: plcAddr,
+            pressure: value
+          };
+          
+          const dataJson = JSON.stringify(pushData);
+          
+          // 同步发布，确保指令有序到达 MQTT 队列（QoS=1）
+          await new Promise<void>((pubRes, pubRej) => {
+            client.publish(pushTopic, dataJson, { qos: 1 }, (err) => {
+              if (err) pubRej(err);
+              else pubRes();
             });
-            
-            console.log(`Successfully pushed to ${plcAddr}: value=${pressure}`);
-          }
+          });
+          
+          console.log(`Successfully pushed to ${plcAddr}: value=${value}`);
           resolve();
         } catch (err) {
           reject(err);
